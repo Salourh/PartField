@@ -81,10 +81,12 @@ if [ "$USE_CONDA" = true ]; then
     export PATH="$MINICONDA_DIR/bin:$PATH"
     eval "$($MINICONDA_DIR/bin/conda shell.bash hook)"
 
-    # Use conda-forge channel (no ToS required)
-    log_info "Configuring conda-forge channel..."
+    # Use conda-forge channel ONLY (no ToS required)
+    # Remove default Anaconda channels to avoid ToS acceptance requirement
+    log_info "Configuring conda-forge channel (removing defaults to avoid ToS)..."
     conda config --add channels conda-forge
     conda config --set channel_priority strict
+    conda config --remove channels defaults 2>/dev/null || true
 
     # Create conda environment
     if ! conda env list | grep -q "^${CONDA_ENV} "; then
