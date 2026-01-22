@@ -133,8 +133,11 @@ cd "$PARTFIELD_DIR"
 # ==================== Install Python dependencies ====================
 log_info "Installing Python dependencies..."
 
+# Use --ignore-installed to avoid conflicts with distutils-installed packages
+PIP_OPTS="--ignore-installed"
+
 # Core dependencies
-$PIP_CMD install -q \
+$PIP_CMD install -q $PIP_OPTS \
     lightning==2.2 \
     h5py \
     yacs \
@@ -148,39 +151,39 @@ $PIP_CMD install -q \
     numpy
 
 # Mesh processing dependencies
-$PIP_CMD install -q \
+$PIP_CMD install -q $PIP_OPTS \
     plyfile \
     einops \
     open3d
 
 # Install pymeshlab (may require special handling)
-$PIP_CMD install -q pymeshlab || log_warning "pymeshlab installation failed, some features may not work"
+$PIP_CMD install -q $PIP_OPTS pymeshlab || log_warning "pymeshlab installation failed, some features may not work"
 
 # Install torch-scatter (needs to match PyTorch version)
 log_info "Installing torch-scatter..."
 if [ "$USE_CONDA" = true ]; then
-    $PIP_CMD install -q torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
+    $PIP_CMD install -q $PIP_OPTS torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
 else
     # Detect PyTorch version for correct torch-scatter
     TORCH_VER=$($PYTHON_CMD -c "import torch; print(torch.__version__.split('+')[0])")
     CUDA_VER=$($PYTHON_CMD -c "import torch; print(torch.version.cuda.replace('.', '')[:3])")
-    $PIP_CMD install -q torch-scatter -f "https://data.pyg.org/whl/torch-${TORCH_VER}+cu${CUDA_VER}.html" || \
-    $PIP_CMD install -q torch-scatter || \
+    $PIP_CMD install -q $PIP_OPTS torch-scatter -f "https://data.pyg.org/whl/torch-${TORCH_VER}+cu${CUDA_VER}.html" || \
+    $PIP_CMD install -q $PIP_OPTS torch-scatter || \
     log_warning "torch-scatter installation failed"
 fi
 
 # Optional visualization dependencies
-$PIP_CMD install -q vtk polyscope potpourri3d || log_warning "Some visualization packages failed to install"
+$PIP_CMD install -q $PIP_OPTS vtk polyscope potpourri3d || log_warning "Some visualization packages failed to install"
 
 # Install libigl
-$PIP_CMD install -q libigl || log_warning "libigl installation failed"
+$PIP_CMD install -q $PIP_OPTS libigl || log_warning "libigl installation failed"
 
 # Install mesh2sdf and tetgen (optional, for remeshing)
-$PIP_CMD install -q mesh2sdf tetgen || log_warning "mesh2sdf/tetgen installation failed, remeshing may not work"
+$PIP_CMD install -q $PIP_OPTS mesh2sdf tetgen || log_warning "mesh2sdf/tetgen installation failed, remeshing may not work"
 
 # ==================== Install Gradio ====================
 log_info "Installing Gradio for web interface..."
-$PIP_CMD install -q "gradio>=4.0.0"
+$PIP_CMD install -q $PIP_OPTS "gradio>=4.0.0"
 
 log_success "All Python dependencies installed."
 
@@ -189,7 +192,7 @@ log_info "Downloading PartField model from HuggingFace..."
 mkdir -p "$MODEL_DIR"
 
 # Use huggingface_hub to download
-$PIP_CMD install -q huggingface_hub
+$PIP_CMD install -q $PIP_OPTS huggingface_hub
 
 $PYTHON_CMD << 'EOF'
 from huggingface_hub import hf_hub_download
