@@ -91,7 +91,8 @@ if [ "$USE_CONDA" = true ]; then
     # Create conda environment
     if ! conda env list | grep -q "^${CONDA_ENV} "; then
         log_info "Creating conda environment '$CONDA_ENV' with Python 3.10..."
-        conda create -n "$CONDA_ENV" python=3.10 -y -q -c conda-forge
+        # Use --override-channels to ONLY use conda-forge, bypassing any default channels and ToS requirements
+        conda create -n "$CONDA_ENV" python=3.10 -y -q --override-channels -c conda-forge
         log_success "Conda environment created."
     else
         log_info "Conda environment '$CONDA_ENV' already exists."
@@ -136,6 +137,7 @@ $PIP_CMD install \
     loguru \
     boto3 \
     networkx \
+    psutil \
     "fsspec<2025.0" \
     "packaging<25.0"
 
