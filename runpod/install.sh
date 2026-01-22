@@ -74,11 +74,6 @@ if [ "$PYTORCH_OK" = true ]; then
     USE_CONDA=false
     PYTHON_CMD="python3"
     PIP_CMD="pip3"
-
-    # Force consistent PyTorch 2.4.0 ecosystem to avoid version conflicts
-    log_info "Installing consistent PyTorch 2.4.0 ecosystem..."
-    $PIP_CMD install --force-reinstall torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu124
-    log_success "PyTorch 2.4.0 installed."
 else
     log_info "PyTorch not found or no CUDA support. Will install via Miniconda."
     USE_CONDA=true
@@ -167,18 +162,10 @@ $PIP_CMD install $PIP_OPTS \
 log_info "  [3/8] Installing pymeshlab..."
 $PIP_CMD install $PIP_OPTS pymeshlab || log_warning "pymeshlab installation failed, some features may not work"
 
-# Install torch-scatter (needs to match PyTorch version)
+# Install torch-scatter (for PyTorch 2.4.0)
 log_info "  [4/8] Installing torch-scatter..."
-if [ "$USE_CONDA" = true ]; then
-    $PIP_CMD install $PIP_OPTS torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
-else
-    # Detect PyTorch version for correct torch-scatter
-    TORCH_VER=$($PYTHON_CMD -c "import torch; print(torch.__version__.split('+')[0])")
-    CUDA_VER=$($PYTHON_CMD -c "import torch; print(torch.version.cuda.replace('.', '')[:3])")
-    $PIP_CMD install $PIP_OPTS torch-scatter -f "https://data.pyg.org/whl/torch-${TORCH_VER}+cu${CUDA_VER}.html" || \
-    $PIP_CMD install $PIP_OPTS torch-scatter || \
+$PIP_CMD install $PIP_OPTS torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html || \
     log_warning "torch-scatter installation failed"
-fi
 
 # Optional visualization dependencies
 log_info "  [5/8] Installing visualization (vtk, polyscope)..."
@@ -195,6 +182,11 @@ $PIP_CMD install $PIP_OPTS mesh2sdf tetgen || log_warning "mesh2sdf/tetgen insta
 # ==================== Install Gradio ====================
 log_info "  [8/8] Installing Gradio..."
 $PIP_CMD install $PIP_OPTS "gradio>=4.0.0"
+
+# ==================== Fix PyTorch version ====================
+# Reinstall torch 2.4.0 at the end because lightning may have installed a newer version
+log_info "Ensuring PyTorch 2.4.0 (fixing potential version conflicts)..."
+$PIP_CMD install --force-reinstall torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu124
 
 log_success "All Python dependencies installed."
 
