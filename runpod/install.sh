@@ -81,15 +81,15 @@ if [ "$USE_CONDA" = true ]; then
     export PATH="$MINICONDA_DIR/bin:$PATH"
     eval "$($MINICONDA_DIR/bin/conda shell.bash hook)"
 
-    # Accept Conda Terms of Service
-    log_info "Accepting Conda Terms of Service..."
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main -y 2>/dev/null || true
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r -y 2>/dev/null || true
+    # Use conda-forge channel (no ToS required)
+    log_info "Configuring conda-forge channel..."
+    conda config --add channels conda-forge
+    conda config --set channel_priority strict
 
     # Create conda environment
     if ! conda env list | grep -q "^${CONDA_ENV} "; then
         log_info "Creating conda environment '$CONDA_ENV' with Python 3.10..."
-        conda create -n "$CONDA_ENV" python=3.10 -y -q
+        conda create -n "$CONDA_ENV" python=3.10 -y -q -c conda-forge
         log_success "Conda environment created."
     else
         log_info "Conda environment '$CONDA_ENV' already exists."
