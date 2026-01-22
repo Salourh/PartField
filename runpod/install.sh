@@ -195,13 +195,13 @@ log_success "All Python dependencies installed."
 log_info "Downloading PartField model from HuggingFace..."
 mkdir -p "$MODEL_DIR"
 
-# Download model checkpoint
-# Try wget first (more reliable), fallback to huggingface_hub
-MODEL_URL="https://huggingface.co/TencentARC/PartField/resolve/main/model_objaverse.ckpt"
+# Download model checkpoint from HuggingFace
+# Repo: mikaelaangel/partfield-ckpt (as per README)
+MODEL_URL="https://huggingface.co/mikaelaangel/partfield-ckpt/resolve/main/model_objaverse.ckpt"
 MODEL_FILE="$MODEL_DIR/model_objaverse.ckpt"
 
 if [ ! -f "$MODEL_FILE" ]; then
-    log_info "Downloading model checkpoint..."
+    log_info "Downloading model checkpoint from HuggingFace..."
     wget -q --show-progress -O "$MODEL_FILE" "$MODEL_URL" || {
         log_warning "wget failed, trying huggingface_hub..."
         $PIP_CMD install -q huggingface_hub
@@ -210,11 +210,11 @@ from huggingface_hub import hf_hub_download
 import os
 model_dir = os.environ.get('MODEL_DIR', '/workspace/partfield/model')
 try:
-    hf_hub_download(repo_id="TencentARC/PartField", filename="model_objaverse.ckpt", local_dir=model_dir)
+    hf_hub_download(repo_id="mikaelaangel/partfield-ckpt", filename="model_objaverse.ckpt", local_dir=model_dir)
     print("Model downloaded!")
 except Exception as e:
     print(f"Warning: Could not download model: {e}")
-    print("Download manually from: https://huggingface.co/TencentARC/PartField")
+    print("Download manually from: https://huggingface.co/mikaelaangel/partfield-ckpt")
 PYEOF
     }
 else
