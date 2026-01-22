@@ -178,7 +178,7 @@ $PIP_CMD install "gradio>=4.0.0"
 # ==================== Install PyTorch 2.4.0 LAST ====================
 # This ensures torch 2.4.0 is the final version, not overwritten by other packages
 log_info "  [9/9] Installing PyTorch 2.4.0 + CUDA 12.4 (final step)..."
-$PIP_CMD install --force-reinstall --no-deps \
+$PIP_CMD install --force-reinstall \
     torch==2.4.0 \
     torchvision==0.19.0 \
     torchaudio==2.4.0 \
