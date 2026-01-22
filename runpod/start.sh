@@ -33,7 +33,9 @@ if [ ! -f "$MARKER_FILE" ]; then
     exit 1
 fi
 
-log_info "Starting PartField server..."
+# Detect installation mode (first line of marker file)
+INSTALL_MODE=$(head -n 1 "$MARKER_FILE")
+log_info "Starting PartField server (mode: $INSTALL_MODE)..."
 
 # ==================== Install system libraries (non-persistent) ====================
 log_info "Installing system libraries (required after each restart)..."
@@ -50,17 +52,23 @@ apt-get install -y -qq \
 
 log_success "System libraries installed."
 
-# ==================== Activate Conda environment ====================
-log_info "Activating conda environment..."
-export PATH="$MINICONDA_DIR/bin:$PATH"
-eval "$($MINICONDA_DIR/bin/conda shell.bash hook)"
-conda activate "$CONDA_ENV"
+# ==================== Setup Python environment ====================
+if [ "$INSTALL_MODE" = "conda" ]; then
+    log_info "Activating conda environment..."
+    export PATH="$MINICONDA_DIR/bin:$PATH"
+    eval "$($MINICONDA_DIR/bin/conda shell.bash hook)"
+    conda activate "$CONDA_ENV"
+    PYTHON_CMD="python"
+else
+    log_info "Using system Python..."
+    PYTHON_CMD="python3"
+fi
 
-log_success "Conda environment activated."
+log_success "Python environment ready."
 
 # ==================== Verify GPU ====================
 log_info "Checking GPU availability..."
-python3 -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"Not available\"}')"
+$PYTHON_CMD -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"Not available\"}')"
 
 # ==================== Create jobs directory ====================
 mkdir -p "$WORKSPACE/jobs"
@@ -81,7 +89,7 @@ log_info "Press Ctrl+C to stop the server"
 echo ""
 
 # Start Gradio app
-python3 gradio_app.py \
+$PYTHON_CMD gradio_app.py \
     --port $GRADIO_PORT \
     --share \
     --jobs-dir "$WORKSPACE/jobs"

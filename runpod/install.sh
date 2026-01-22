@@ -2,6 +2,10 @@
 # PartField Installation Script for RunPod NVIDIA L4
 # This script installs all dependencies in /workspace (persistent storage)
 # Run once after creating a new pod, then use start.sh for subsequent restarts
+#
+# Supports two modes:
+# 1. If PyTorch+CUDA is pre-installed (e.g., runpod/pytorch template): uses system Python
+# 2. Otherwise: installs Miniconda and creates a conda environment
 
 set -e  # Exit on error
 
@@ -12,6 +16,7 @@ MINICONDA_DIR="$WORKSPACE/miniconda3"
 CONDA_ENV="partfield"
 MARKER_FILE="$WORKSPACE/.partfield_installed"
 MODEL_DIR="$PARTFIELD_DIR/model"
+USE_CONDA=false
 
 # Colors for output
 RED='\033[0;31m'
@@ -34,7 +39,6 @@ if [ -f "$MARKER_FILE" ]; then
 fi
 
 log_info "Starting PartField installation on RunPod..."
-log_info "This will take approximately 15-20 minutes."
 
 # ==================== Install system dependencies ====================
 log_info "Installing system dependencies..."
@@ -54,21 +58,63 @@ apt-get install -y -qq \
 
 log_success "System dependencies installed."
 
-# ==================== Install Miniconda ====================
-if [ ! -d "$MINICONDA_DIR" ]; then
-    log_info "Installing Miniconda to $MINICONDA_DIR..."
-    cd /tmp
-    wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-    bash miniconda.sh -b -p "$MINICONDA_DIR"
-    rm miniconda.sh
-    log_success "Miniconda installed."
-else
-    log_info "Miniconda already exists at $MINICONDA_DIR"
+# ==================== Check for existing PyTorch installation ====================
+log_info "Checking for existing PyTorch installation..."
+
+PYTORCH_OK=false
+if python3 -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
+    PYTORCH_VERSION=$(python3 -c "import torch; print(torch.__version__)" 2>/dev/null)
+    CUDA_VERSION=$(python3 -c "import torch; print(torch.version.cuda)" 2>/dev/null)
+    log_success "Found PyTorch $PYTORCH_VERSION with CUDA $CUDA_VERSION"
+    PYTORCH_OK=true
 fi
 
-# Initialize conda for this script
-export PATH="$MINICONDA_DIR/bin:$PATH"
-eval "$($MINICONDA_DIR/bin/conda shell.bash hook)"
+if [ "$PYTORCH_OK" = true ]; then
+    log_info "Using system Python (PyTorch already installed)"
+    USE_CONDA=false
+    PYTHON_CMD="python3"
+    PIP_CMD="pip3"
+else
+    log_info "PyTorch not found or no CUDA support. Will install via Miniconda."
+    USE_CONDA=true
+    log_info "This will take approximately 15-20 minutes."
+fi
+
+# ==================== Install Miniconda (if needed) ====================
+if [ "$USE_CONDA" = true ]; then
+    if [ ! -d "$MINICONDA_DIR" ]; then
+        log_info "Installing Miniconda to $MINICONDA_DIR..."
+        cd /tmp
+        wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+        bash miniconda.sh -b -p "$MINICONDA_DIR"
+        rm miniconda.sh
+        log_success "Miniconda installed."
+    else
+        log_info "Miniconda already exists at $MINICONDA_DIR"
+    fi
+
+    # Initialize conda for this script
+    export PATH="$MINICONDA_DIR/bin:$PATH"
+    eval "$($MINICONDA_DIR/bin/conda shell.bash hook)"
+
+    # Create conda environment
+    if ! conda env list | grep -q "^${CONDA_ENV} "; then
+        log_info "Creating conda environment '$CONDA_ENV' with Python 3.10..."
+        conda create -n "$CONDA_ENV" python=3.10 -y -q
+        log_success "Conda environment created."
+    else
+        log_info "Conda environment '$CONDA_ENV' already exists."
+    fi
+
+    # Activate environment
+    conda activate "$CONDA_ENV"
+    PYTHON_CMD="python"
+    PIP_CMD="pip"
+
+    # Install PyTorch
+    log_info "Installing PyTorch 2.4.0 with CUDA 12.4..."
+    $PIP_CMD install -q torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu124
+fi
 
 # ==================== Clone or update PartField repository ====================
 if [ ! -d "$PARTFIELD_DIR" ]; then
@@ -84,27 +130,11 @@ fi
 
 cd "$PARTFIELD_DIR"
 
-# ==================== Create Conda Environment ====================
-if ! conda env list | grep -q "^${CONDA_ENV} "; then
-    log_info "Creating conda environment '$CONDA_ENV' with Python 3.10..."
-    conda create -n "$CONDA_ENV" python=3.10 -y -q
-    log_success "Conda environment created."
-else
-    log_info "Conda environment '$CONDA_ENV' already exists."
-fi
-
-# Activate environment
-conda activate "$CONDA_ENV"
-
-# ==================== Install PyTorch with CUDA 12.4 ====================
-log_info "Installing PyTorch 2.4.0 with CUDA 12.4..."
-pip install -q torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu124
-
 # ==================== Install Python dependencies ====================
-log_info "Installing Python dependencies (this may take a while)..."
+log_info "Installing Python dependencies..."
 
 # Core dependencies
-pip install -q \
+$PIP_CMD install -q \
     lightning==2.2 \
     h5py \
     yacs \
@@ -118,29 +148,39 @@ pip install -q \
     numpy
 
 # Mesh processing dependencies
-pip install -q \
+$PIP_CMD install -q \
     plyfile \
     einops \
     open3d
 
 # Install pymeshlab (may require special handling)
-pip install -q pymeshlab || log_warning "pymeshlab installation failed, some features may not work"
+$PIP_CMD install -q pymeshlab || log_warning "pymeshlab installation failed, some features may not work"
 
 # Install torch-scatter (needs to match PyTorch version)
-pip install -q torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
+log_info "Installing torch-scatter..."
+if [ "$USE_CONDA" = true ]; then
+    $PIP_CMD install -q torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
+else
+    # Detect PyTorch version for correct torch-scatter
+    TORCH_VER=$($PYTHON_CMD -c "import torch; print(torch.__version__.split('+')[0])")
+    CUDA_VER=$($PYTHON_CMD -c "import torch; print(torch.version.cuda.replace('.', '')[:3])")
+    $PIP_CMD install -q torch-scatter -f "https://data.pyg.org/whl/torch-${TORCH_VER}+cu${CUDA_VER}.html" || \
+    $PIP_CMD install -q torch-scatter || \
+    log_warning "torch-scatter installation failed"
+fi
 
 # Optional visualization dependencies
-pip install -q vtk polyscope potpourri3d || log_warning "Some visualization packages failed to install"
+$PIP_CMD install -q vtk polyscope potpourri3d || log_warning "Some visualization packages failed to install"
 
 # Install libigl
-pip install -q libigl || log_warning "libigl installation failed"
+$PIP_CMD install -q libigl || log_warning "libigl installation failed"
 
 # Install mesh2sdf and tetgen (optional, for remeshing)
-pip install -q mesh2sdf tetgen || log_warning "mesh2sdf/tetgen installation failed, remeshing may not work"
+$PIP_CMD install -q mesh2sdf tetgen || log_warning "mesh2sdf/tetgen installation failed, remeshing may not work"
 
 # ==================== Install Gradio ====================
 log_info "Installing Gradio for web interface..."
-pip install -q "gradio>=4.0.0"
+$PIP_CMD install -q "gradio>=4.0.0"
 
 log_success "All Python dependencies installed."
 
@@ -149,9 +189,9 @@ log_info "Downloading PartField model from HuggingFace..."
 mkdir -p "$MODEL_DIR"
 
 # Use huggingface_hub to download
-pip install -q huggingface_hub
+$PIP_CMD install -q huggingface_hub
 
-python3 << 'EOF'
+$PYTHON_CMD << 'EOF'
 from huggingface_hub import hf_hub_download
 import os
 
@@ -176,13 +216,18 @@ EOF
 log_info "Creating jobs directory for Gradio uploads..."
 mkdir -p "$WORKSPACE/jobs"
 
-# ==================== Create marker file ====================
-echo "$(date)" > "$MARKER_FILE"
+# ==================== Save installation mode ====================
+if [ "$USE_CONDA" = true ]; then
+    echo "conda" > "$MARKER_FILE"
+else
+    echo "system" > "$MARKER_FILE"
+fi
+echo "$(date)" >> "$MARKER_FILE"
 
 # ==================== Verify installation ====================
 log_info "Verifying installation..."
 
-python3 << 'EOF'
+$PYTHON_CMD << 'EOF'
 import torch
 print(f"PyTorch version: {torch.__version__}")
 print(f"CUDA available: {torch.cuda.is_available()}")
@@ -203,6 +248,12 @@ echo ""
 log_success "=========================================="
 log_success "PartField installation complete!"
 log_success "=========================================="
+echo ""
+if [ "$USE_CONDA" = true ]; then
+    log_info "Mode: Conda environment"
+else
+    log_info "Mode: System Python (faster startup)"
+fi
 echo ""
 log_info "To start the Gradio server, run:"
 echo "    bash $PARTFIELD_DIR/runpod/start.sh"
