@@ -137,16 +137,21 @@ $PIP_CMD install \
     "fsspec<2025.0" \
     "packaging<25.0"
 
-# Install pytorch-lightning with pinned compatible versions (no torch yet)
-log_info "  [2/9] Installing pytorch-lightning..."
+# Install lightning with pinned compatible versions (no torch yet)
+# IMPORTANT: Use "lightning" package, NOT "pytorch-lightning"!
+# The code imports "from lightning.pytorch import ..." which requires the "lightning" package
+log_info "  [2/9] Installing lightning..."
 $PIP_CMD install \
-    "pytorch-lightning==2.2.0" \
-    "torchmetrics<1.5" \
-    "lightning-utilities<0.12" \
+    "lightning==2.2.0" \
     --no-deps
 
 # Install lightning dependencies manually (except torch)
-$PIP_CMD install tqdm typing-extensions PyYAML
+$PIP_CMD install \
+    "torchmetrics<1.5" \
+    "lightning-utilities<0.12" \
+    tqdm \
+    typing-extensions \
+    PyYAML
 
 # Mesh processing dependencies
 log_info "  [3/9] Installing mesh processing (open3d, plyfile, einops)..."
