@@ -58,27 +58,11 @@ apt-get install -y -qq \
 
 log_success "System dependencies installed."
 
-# ==================== Check for existing PyTorch installation ====================
-log_info "Checking for existing PyTorch installation..."
-
-PYTORCH_OK=false
-if python3 -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
-    PYTORCH_VERSION=$(python3 -c "import torch; print(torch.__version__)" 2>/dev/null)
-    CUDA_VERSION=$(python3 -c "import torch; print(torch.version.cuda)" 2>/dev/null)
-    log_success "Found PyTorch $PYTORCH_VERSION with CUDA $CUDA_VERSION"
-    PYTORCH_OK=true
-fi
-
-if [ "$PYTORCH_OK" = true ]; then
-    log_info "Using system Python"
-    USE_CONDA=false
-    PYTHON_CMD="python3"
-    PIP_CMD="pip3"
-else
-    log_info "PyTorch not found or no CUDA support. Will install via Miniconda."
-    USE_CONDA=true
-    log_info "This will take approximately 15-20 minutes."
-fi
+# ==================== Always use Conda for clean environment ====================
+# System Python has version conflicts, so we always use Conda for isolation
+log_info "Using Miniconda for clean, isolated environment..."
+USE_CONDA=true
+log_info "This will take approximately 15-20 minutes."
 
 # ==================== Install Miniconda (if needed) ====================
 if [ "$USE_CONDA" = true ]; then
@@ -162,9 +146,9 @@ $PIP_CMD install $PIP_OPTS \
 log_info "  [3/8] Installing pymeshlab..."
 $PIP_CMD install $PIP_OPTS pymeshlab || log_warning "pymeshlab installation failed, some features may not work"
 
-# Install torch-scatter (for PyTorch 2.4.0)
+# Install torch-scatter (for PyTorch 2.4.0 + CUDA 12.4)
 log_info "  [4/8] Installing torch-scatter..."
-$PIP_CMD install $PIP_OPTS torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html || \
+$PIP_CMD install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html || \
     log_warning "torch-scatter installation failed"
 
 # Optional visualization dependencies
@@ -182,11 +166,6 @@ $PIP_CMD install $PIP_OPTS mesh2sdf tetgen || log_warning "mesh2sdf/tetgen insta
 # ==================== Install Gradio ====================
 log_info "  [8/8] Installing Gradio..."
 $PIP_CMD install $PIP_OPTS "gradio>=4.0.0"
-
-# ==================== Fix PyTorch version ====================
-# Reinstall torch 2.4.0 at the end because lightning may have installed a newer version
-log_info "Ensuring PyTorch 2.4.0 (fixing potential version conflicts)..."
-$PIP_CMD install --force-reinstall torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu124
 
 log_success "All Python dependencies installed."
 
@@ -223,11 +202,7 @@ log_info "Creating jobs directory for Gradio uploads..."
 mkdir -p "$WORKSPACE/jobs"
 
 # ==================== Save installation mode ====================
-if [ "$USE_CONDA" = true ]; then
-    echo "conda" > "$MARKER_FILE"
-else
-    echo "system" > "$MARKER_FILE"
-fi
+echo "conda" > "$MARKER_FILE"
 echo "$(date)" >> "$MARKER_FILE"
 
 # ==================== Verify installation ====================
@@ -255,11 +230,7 @@ log_success "=========================================="
 log_success "PartField installation complete!"
 log_success "=========================================="
 echo ""
-if [ "$USE_CONDA" = true ]; then
-    log_info "Mode: Conda environment"
-else
-    log_info "Mode: System Python (faster startup)"
-fi
+log_info "Mode: Conda environment (isolated)"
 echo ""
 log_info "To start the Gradio server, run:"
 echo "    bash $PARTFIELD_DIR/runpod/start.sh"
