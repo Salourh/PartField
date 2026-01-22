@@ -100,9 +100,8 @@ if [ "$USE_CONDA" = true ]; then
     PYTHON_CMD="python"
     PIP_CMD="pip"
 
-    # Install PyTorch
-    log_info "Installing PyTorch 2.4.0 with CUDA 12.4..."
-    $PIP_CMD install -q torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu124
+    PYTHON_CMD="python"
+    PIP_CMD="pip"
 fi
 
 # ==================== Clone or update PartField repository ====================
@@ -122,55 +121,73 @@ cd "$PARTFIELD_DIR"
 # ==================== Install Python dependencies ====================
 log_info "Installing Python dependencies..."
 
-# Use --ignore-installed to avoid conflicts with distutils-installed packages
-PIP_OPTS="--ignore-installed"
-
-# Core dependencies
-log_info "  [1/8] Installing core dependencies (lightning, scipy, numpy, etc.)..."
-$PIP_CMD install $PIP_OPTS \
-    lightning==2.2 \
+# Core dependencies (without torch - we install it last)
+log_info "  [1/9] Installing core dependencies (numpy, scipy, etc.)..."
+$PIP_CMD install \
+    "numpy<2.0" \
+    scipy \
+    scikit-learn \
+    scikit-image \
     h5py \
     yacs \
     trimesh \
-    scikit-image \
-    scikit-learn \
     loguru \
     boto3 \
     networkx \
-    scipy \
-    numpy
+    "fsspec<2025.0" \
+    "packaging<25.0"
+
+# Install pytorch-lightning with pinned compatible versions (no torch yet)
+log_info "  [2/9] Installing pytorch-lightning..."
+$PIP_CMD install \
+    "pytorch-lightning==2.2.0" \
+    "torchmetrics<1.5" \
+    "lightning-utilities<0.12" \
+    --no-deps
+
+# Install lightning dependencies manually (except torch)
+$PIP_CMD install tqdm typing-extensions PyYAML
 
 # Mesh processing dependencies
-log_info "  [2/8] Installing mesh processing (open3d, plyfile, einops)..."
-$PIP_CMD install $PIP_OPTS \
+log_info "  [3/9] Installing mesh processing (open3d, plyfile, einops)..."
+$PIP_CMD install \
     plyfile \
     einops \
     open3d
 
 # Install pymeshlab (may require special handling)
-log_info "  [3/8] Installing pymeshlab..."
-$PIP_CMD install $PIP_OPTS pymeshlab || log_warning "pymeshlab installation failed, some features may not work"
-
-# Install torch-scatter (for PyTorch 2.4.0 + CUDA 12.4)
-log_info "  [4/8] Installing torch-scatter..."
-$PIP_CMD install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html || \
-    log_warning "torch-scatter installation failed"
+log_info "  [4/9] Installing pymeshlab..."
+$PIP_CMD install pymeshlab || log_warning "pymeshlab installation failed, some features may not work"
 
 # Optional visualization dependencies
-log_info "  [5/8] Installing visualization (vtk, polyscope)..."
-$PIP_CMD install $PIP_OPTS vtk polyscope potpourri3d || log_warning "Some visualization packages failed to install"
+log_info "  [5/9] Installing visualization (vtk, polyscope)..."
+$PIP_CMD install vtk polyscope potpourri3d || log_warning "Some visualization packages failed to install"
 
 # Install libigl
-log_info "  [6/8] Installing libigl..."
-$PIP_CMD install $PIP_OPTS libigl || log_warning "libigl installation failed"
+log_info "  [6/9] Installing libigl..."
+$PIP_CMD install libigl || log_warning "libigl installation failed"
 
 # Install mesh2sdf and tetgen (optional, for remeshing)
-log_info "  [7/8] Installing mesh2sdf, tetgen..."
-$PIP_CMD install $PIP_OPTS mesh2sdf tetgen || log_warning "mesh2sdf/tetgen installation failed, remeshing may not work"
+log_info "  [7/9] Installing mesh2sdf, tetgen..."
+$PIP_CMD install mesh2sdf tetgen || log_warning "mesh2sdf/tetgen installation failed, remeshing may not work"
 
 # ==================== Install Gradio ====================
-log_info "  [8/8] Installing Gradio..."
-$PIP_CMD install $PIP_OPTS "gradio>=4.0.0"
+log_info "  [8/9] Installing Gradio..."
+$PIP_CMD install "gradio>=4.0.0"
+
+# ==================== Install PyTorch 2.4.0 LAST ====================
+# This ensures torch 2.4.0 is the final version, not overwritten by other packages
+log_info "  [9/9] Installing PyTorch 2.4.0 + CUDA 12.4 (final step)..."
+$PIP_CMD install --force-reinstall --no-deps \
+    torch==2.4.0 \
+    torchvision==0.19.0 \
+    torchaudio==2.4.0 \
+    --index-url https://download.pytorch.org/whl/cu124
+
+# Install torch-scatter (for PyTorch 2.4.0 + CUDA 12.4)
+log_info "Installing torch-scatter..."
+$PIP_CMD install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html || \
+    log_warning "torch-scatter installation failed"
 
 log_success "All Python dependencies installed."
 
@@ -178,29 +195,31 @@ log_success "All Python dependencies installed."
 log_info "Downloading PartField model from HuggingFace..."
 mkdir -p "$MODEL_DIR"
 
-# Use huggingface_hub to download
-$PIP_CMD install -q $PIP_OPTS huggingface_hub
+# Download model checkpoint
+# Try wget first (more reliable), fallback to huggingface_hub
+MODEL_URL="https://huggingface.co/TencentARC/PartField/resolve/main/model_objaverse.ckpt"
+MODEL_FILE="$MODEL_DIR/model_objaverse.ckpt"
 
-$PYTHON_CMD << 'EOF'
+if [ ! -f "$MODEL_FILE" ]; then
+    log_info "Downloading model checkpoint..."
+    wget -q --show-progress -O "$MODEL_FILE" "$MODEL_URL" || {
+        log_warning "wget failed, trying huggingface_hub..."
+        $PIP_CMD install -q huggingface_hub
+        $PYTHON_CMD << 'PYEOF'
 from huggingface_hub import hf_hub_download
 import os
-
 model_dir = os.environ.get('MODEL_DIR', '/workspace/partfield/model')
-print(f"Downloading model to {model_dir}...")
-
 try:
-    # Download the main model checkpoint
-    hf_hub_download(
-        repo_id="TencentARC/PartField",
-        filename="model_objaverse.ckpt",
-        local_dir=model_dir,
-        local_dir_use_symlinks=False
-    )
-    print("Model downloaded successfully!")
+    hf_hub_download(repo_id="TencentARC/PartField", filename="model_objaverse.ckpt", local_dir=model_dir)
+    print("Model downloaded!")
 except Exception as e:
     print(f"Warning: Could not download model: {e}")
-    print("You may need to download it manually from https://huggingface.co/TencentARC/PartField")
-EOF
+    print("Download manually from: https://huggingface.co/TencentARC/PartField")
+PYEOF
+    }
+else
+    log_info "Model checkpoint already exists."
+fi
 
 # ==================== Create jobs directory ====================
 log_info "Creating jobs directory for Gradio uploads..."
