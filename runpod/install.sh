@@ -137,7 +137,8 @@ log_info "Installing Python dependencies..."
 PIP_OPTS="--ignore-installed"
 
 # Core dependencies
-$PIP_CMD install -q $PIP_OPTS \
+log_info "  [1/8] Installing core dependencies (lightning, scipy, numpy, etc.)..."
+$PIP_CMD install $PIP_OPTS \
     lightning==2.2 \
     h5py \
     yacs \
@@ -151,39 +152,44 @@ $PIP_CMD install -q $PIP_OPTS \
     numpy
 
 # Mesh processing dependencies
-$PIP_CMD install -q $PIP_OPTS \
+log_info "  [2/8] Installing mesh processing (open3d, plyfile, einops)..."
+$PIP_CMD install $PIP_OPTS \
     plyfile \
     einops \
     open3d
 
 # Install pymeshlab (may require special handling)
-$PIP_CMD install -q $PIP_OPTS pymeshlab || log_warning "pymeshlab installation failed, some features may not work"
+log_info "  [3/8] Installing pymeshlab..."
+$PIP_CMD install $PIP_OPTS pymeshlab || log_warning "pymeshlab installation failed, some features may not work"
 
 # Install torch-scatter (needs to match PyTorch version)
-log_info "Installing torch-scatter..."
+log_info "  [4/8] Installing torch-scatter..."
 if [ "$USE_CONDA" = true ]; then
-    $PIP_CMD install -q $PIP_OPTS torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
+    $PIP_CMD install $PIP_OPTS torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
 else
     # Detect PyTorch version for correct torch-scatter
     TORCH_VER=$($PYTHON_CMD -c "import torch; print(torch.__version__.split('+')[0])")
     CUDA_VER=$($PYTHON_CMD -c "import torch; print(torch.version.cuda.replace('.', '')[:3])")
-    $PIP_CMD install -q $PIP_OPTS torch-scatter -f "https://data.pyg.org/whl/torch-${TORCH_VER}+cu${CUDA_VER}.html" || \
-    $PIP_CMD install -q $PIP_OPTS torch-scatter || \
+    $PIP_CMD install $PIP_OPTS torch-scatter -f "https://data.pyg.org/whl/torch-${TORCH_VER}+cu${CUDA_VER}.html" || \
+    $PIP_CMD install $PIP_OPTS torch-scatter || \
     log_warning "torch-scatter installation failed"
 fi
 
 # Optional visualization dependencies
-$PIP_CMD install -q $PIP_OPTS vtk polyscope potpourri3d || log_warning "Some visualization packages failed to install"
+log_info "  [5/8] Installing visualization (vtk, polyscope)..."
+$PIP_CMD install $PIP_OPTS vtk polyscope potpourri3d || log_warning "Some visualization packages failed to install"
 
 # Install libigl
-$PIP_CMD install -q $PIP_OPTS libigl || log_warning "libigl installation failed"
+log_info "  [6/8] Installing libigl..."
+$PIP_CMD install $PIP_OPTS libigl || log_warning "libigl installation failed"
 
 # Install mesh2sdf and tetgen (optional, for remeshing)
-$PIP_CMD install -q $PIP_OPTS mesh2sdf tetgen || log_warning "mesh2sdf/tetgen installation failed, remeshing may not work"
+log_info "  [7/8] Installing mesh2sdf, tetgen..."
+$PIP_CMD install $PIP_OPTS mesh2sdf tetgen || log_warning "mesh2sdf/tetgen installation failed, remeshing may not work"
 
 # ==================== Install Gradio ====================
-log_info "Installing Gradio for web interface..."
-$PIP_CMD install -q $PIP_OPTS "gradio>=4.0.0"
+log_info "  [8/8] Installing Gradio..."
+$PIP_CMD install $PIP_OPTS "gradio>=4.0.0"
 
 log_success "All Python dependencies installed."
 
