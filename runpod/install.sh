@@ -70,10 +70,15 @@ if python3 -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
 fi
 
 if [ "$PYTORCH_OK" = true ]; then
-    log_info "Using system Python (PyTorch already installed)"
+    log_info "Using system Python"
     USE_CONDA=false
     PYTHON_CMD="python3"
     PIP_CMD="pip3"
+
+    # Force consistent PyTorch 2.4.0 ecosystem to avoid version conflicts
+    log_info "Installing consistent PyTorch 2.4.0 ecosystem..."
+    $PIP_CMD install --force-reinstall torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu124
+    log_success "PyTorch 2.4.0 installed."
 else
     log_info "PyTorch not found or no CUDA support. Will install via Miniconda."
     USE_CONDA=true
