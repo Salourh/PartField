@@ -1,0 +1,170 @@
+# PartField Docker Build - Exclude Patterns
+# This file specifies which files/directories to exclude from Docker build context
+# Reduces build time and image size
+
+# ============================================================================
+# Git Files
+# ============================================================================
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# ============================================================================
+# Python Cache and Build Artifacts
+# ============================================================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.whl
+
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+*$py.class
+
+# ============================================================================
+# Data and Model Files (Large Files)
+# ============================================================================
+# These will be downloaded during installation, not baked into image
+data/
+exp_results/
+model/*.ckpt
+model/*.pth
+model/*.pt
+*.ckpt
+*.pth
+*.pt
+
+# Dataset files
+*.obj
+*.glb
+*.ply
+*.off
+*.mtl
+*.jpg
+*.png
+*.jpeg
+
+# ============================================================================
+# IDE and Editor Files
+# ============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.bak
+*~
+
+# VS Code
+.vscode/
+.history/
+
+# PyCharm
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# ============================================================================
+# System Files
+# ============================================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# macOS
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Linux
+*~
+
+# ============================================================================
+# Logs and Temporary Files
+# ============================================================================
+*.log
+*.tmp
+*.temp
+logs/
+tmp/
+
+# ============================================================================
+# Jobs and Runtime Data
+# ============================================================================
+jobs/
+outputs/
+results/
+*.pkl
+*.pickle
+
+# ============================================================================
+# Virtual Environments (Not Used, but exclude anyway)
+# ============================================================================
+venv/
+env/
+ENV/
+.venv/
+
+# ============================================================================
+# Documentation (Not needed in runtime image)
+# ============================================================================
+*.md
+!runpod/README_RUNPOD.md
+docs/
+
+# ============================================================================
+# Testing
+# ============================================================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ============================================================================
+# Package Management
+# ============================================================================
+# Conda environments (will be created in /workspace/ during installation)
+miniconda3/
+anaconda3/
+conda/
+
+# pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ============================================================================
+# Project-Specific Exclusions
+# ============================================================================
+# Exclude experiment results
+exp_*/
+experiments/
+
+# Exclude any local test files
+test_*.py
+demo_local.py
+
+# Node modules (if any)
+node_modules/
+
+# ============================================================================
+# Keep RunPod Files
+# ============================================================================
+# The following are explicitly needed and should NOT be ignored:
+# - runpod/Dockerfile (used by build)
+# - runpod/install.sh (copied to image)
+# - runpod/start.sh (copied to image)
+# - runpod/README_RUNPOD.md (reference documentation)
