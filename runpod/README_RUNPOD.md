@@ -29,7 +29,7 @@ Complete guide for deploying PartField (3D Part Segmentation) on RunPod with Gra
 **Manual Deployment**:
 1. Create a new GPU pod on RunPod
 2. Select **NVIDIA L4** or any GPU with 24GB+ VRAM
-3. Use Docker image: `salourh/partfield-runpod:latest`
+3. Use Docker image: `timfredfred/partfield-runpod:latest`
 4. Set volume size: 25GB minimum
 5. Expose port: 7860 (HTTP)
 6. Set environment variables:

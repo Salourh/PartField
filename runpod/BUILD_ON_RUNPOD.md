@@ -200,12 +200,12 @@ docker login
 # Enter your Docker Hub username and password
 
 # Tag the image for Docker Hub
-docker tag partfield-runpod:test salourh/partfield-runpod:v1.0
-docker tag partfield-runpod:test salourh/partfield-runpod:latest
+docker tag partfield-runpod:test timfredfred/partfield-runpod:v1.0
+docker tag partfield-runpod:test timfredfred/partfield-runpod:latest
 
 # Push both tags (this will take 10-15 minutes for ~8-10GB image)
-docker push salourh/partfield-runpod:v1.0
-docker push salourh/partfield-runpod:latest
+docker push timfredfred/partfield-runpod:v1.0
+docker push timfredfred/partfield-runpod:latest
 ```
 
 **Upload progress**: You'll see upload progress for each layer. The base image layers may already exist on Docker Hub, so only new layers are uploaded.
@@ -214,7 +214,7 @@ docker push salourh/partfield-runpod:latest
 
 ## Step 10: Verify on Docker Hub
 
-1. Go to https://hub.docker.com/r/salourh/partfield-runpod
+1. Go to https://hub.docker.com/r/timfredfred/partfield-runpod
 2. Verify both tags are present: `v1.0` and `latest`
 3. Check image size and last updated timestamp
 4. Optionally add description and README
@@ -229,8 +229,8 @@ rm -rf /workspace/test-partfield
 
 # Remove Docker images to free space (optional)
 docker rmi partfield-runpod:test
-docker rmi salourh/partfield-runpod:v1.0
-docker rmi salourh/partfield-runpod:latest
+docker rmi timfredfred/partfield-runpod:v1.0
+docker rmi timfredfred/partfield-runpod:latest
 ```
 
 Then stop/terminate the build pod from RunPod Console to avoid charges.
@@ -258,10 +258,10 @@ docker run --gpus all -it -p 7860:7860 \
 
 # Push to Docker Hub
 docker login
-docker tag partfield-runpod:test salourh/partfield-runpod:v1.0
-docker tag partfield-runpod:test salourh/partfield-runpod:latest
-docker push salourh/partfield-runpod:v1.0
-docker push salourh/partfield-runpod:latest
+docker tag partfield-runpod:test timfredfred/partfield-runpod:v1.0
+docker tag partfield-runpod:test timfredfred/partfield-runpod:latest
+docker push timfredfred/partfield-runpod:v1.0
+docker push timfredfred/partfield-runpod:latest
 ```
 
 ## Troubleshooting
@@ -322,7 +322,7 @@ Building on RunPod (one-time):
 
 After successful build and push:
 
-1. ✓ Docker image is on Docker Hub: `salourh/partfield-runpod:latest`
+1. ✓ Docker image is on Docker Hub: `timfredfred/partfield-runpod:latest`
 2. → Create RunPod template (see README_RUNPOD.md)
 3. → Deploy production pod using the template
 4. → Test end-to-end workflow with real 3D models

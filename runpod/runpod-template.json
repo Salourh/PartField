@@ -1,7 +1,7 @@
 {
   "name": "PartField - 3D Part Segmentation",
   "description": "ICCV 2025 research project for 3D part segmentation using PartField neural features. Optimized for NVIDIA L4 GPU (24GB VRAM). Includes Gradio web interface for interactive segmentation of 3D models (OBJ, GLB, PLY, OFF formats). First-time setup: ~15 minutes. Restarts: ~10 seconds. Per-model segmentation: 2-5 minutes.",
-  "dockerImage": "salourh/partfield-runpod:latest",
+  "dockerImage": "timfredfred/partfield-runpod:latest",
   "containerDiskSize": 20,
   "volumeSize": 25,
   "volumeMountPath": "/workspace",

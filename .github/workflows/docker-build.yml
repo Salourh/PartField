@@ -47,7 +47,7 @@ jobs:
           file: runpod/Dockerfile
           push: true
           tags: |
-            salourh/partfield-runpod:latest
-            salourh/partfield-runpod:v1.0
+            timfredfred/partfield-runpod:latest
+            timfredfred/partfield-runpod:v1.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
