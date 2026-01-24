@@ -41,7 +41,7 @@ Complete guide for deploying PartField (3D Part Segmentation) on RunPod with Gra
 Open the pod terminal and run:
 
 ```bash
-bash /workspace/scripts/install.sh
+bash /opt/partfield/install.sh
 ```
 
 This will:
@@ -75,7 +75,7 @@ You can find this URL in:
 If the application isn't running, start it with:
 
 ```bash
-bash /workspace/scripts/start.sh
+bash /opt/partfield/start.sh
 ```
 
 This will:
@@ -103,7 +103,7 @@ rm /workspace/.partfield_v2_installed
 rm -rf /workspace/miniconda3/envs/partfield
 
 # Run installation again
-bash /workspace/scripts/install.sh
+bash /opt/partfield/install.sh
 ```
 
 ### Check Installation Status
@@ -202,7 +202,7 @@ n_clusters: 4
 1. **Retry installation** (network issues are common):
    ```bash
    rm /workspace/.partfield_v2_installed
-   bash /workspace/scripts/install.sh
+   bash /opt/partfield/install.sh
    ```
 
 2. **Manual download**:
@@ -242,7 +242,7 @@ n_clusters: 4
 
 2. **Check for errors in startup**:
    ```bash
-   bash /workspace/scripts/start.sh
+   bash /opt/partfield/start.sh
    # Look for error messages in red
    ```
 
@@ -280,7 +280,7 @@ n_clusters: 4
    ```bash
    rm -rf /workspace/miniconda3/envs/partfield
    rm /workspace/.partfield_v2_installed
-   bash /workspace/scripts/install.sh
+   bash /opt/partfield/install.sh
    ```
 
 ### Upload Fails or Invalid File Error
@@ -305,9 +305,9 @@ After installation, `/workspace/` contains:
 ```
 /workspace/
 ├── .partfield_v2_installed          # Installation marker (version + timestamp)
-├── scripts/                          # Startup scripts (copied from Docker)
-│   ├── install.sh                    # One-time installation
-│   └── start.sh                      # Quick restart script
+├── (scripts are in /opt/partfield/ inside the Docker image)
+│   # /opt/partfield/install.sh       # One-time installation
+│   # /opt/partfield/start.sh         # Quick restart script
 ├── partfield/                        # Cloned repository
 │   ├── gradio_app.py                 # Main Gradio application
 │   ├── environment.yml               # Original conda config

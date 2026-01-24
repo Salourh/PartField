@@ -123,7 +123,7 @@ Inside the container, verify:
 conda --version
 
 # Check scripts are executable
-ls -la /workspace/scripts/
+ls -la /opt/partfield/
 
 # Exit container
 exit
@@ -149,7 +149,7 @@ Inside the container:
 nvidia-smi
 
 # Run installation script
-bash /workspace/scripts/install.sh
+bash /opt/partfield/install.sh
 
 # This will take 10-15 minutes - watch for errors
 # Should complete with "Installation Complete!" message
@@ -177,7 +177,7 @@ docker run --gpus all -it \
   /bin/bash
 
 # Run startup script
-bash /workspace/scripts/start.sh
+bash /opt/partfield/start.sh
 
 # Should start Gradio in ~10 seconds
 # Press Ctrl+C to stop Gradio
@@ -254,7 +254,7 @@ mkdir -p /workspace/test-partfield
 docker run --gpus all -it -p 7860:7860 \
   -v /workspace/test-partfield:/workspace \
   partfield-runpod:test /bin/bash
-# Inside: bash /workspace/scripts/install.sh
+# Inside: bash /opt/partfield/install.sh
 
 # Push to Docker Hub
 docker login

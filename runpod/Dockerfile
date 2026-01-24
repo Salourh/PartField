@@ -1,8 +1,9 @@
 # RunPod Template for PartField - 3D Part Segmentation
-# Base: NVIDIA PyTorch NGC 24.08 (PyTorch 2.4.0 + CUDA 12.4 + cuDNN pre-installed)
+# Base: NVIDIA PyTorch NGC 24.05 (PyTorch 2.4.0a0 + CUDA 12.4 + cuDNN pre-installed)
+# Requires NVIDIA Driver 550.54.14+ (compatible with RunPod's 550.127.x drivers)
 # Optimized for NVIDIA L4 GPU (24GB VRAM)
 
-FROM nvcr.io/nvidia/pytorch:24.08-py3
+FROM nvcr.io/nvidia/pytorch:24.05-py3
 
 # Metadata
 LABEL maintainer="PartField Team"
@@ -45,17 +46,12 @@ RUN conda config --add channels conda-forge && \
     conda config --remove channels defaults && \
     conda config --set channel_priority strict
 
-# Create scripts directory in /workspace/
-# RunPod mounts persistent volume at /workspace/, so scripts will be accessible
-RUN mkdir -p /workspace/scripts
-
-# Copy installation and startup scripts
-COPY runpod/install.sh /workspace/scripts/install.sh
-COPY runpod/start.sh /workspace/scripts/start.sh
-
-# Make scripts executable
-RUN chmod +x /workspace/scripts/install.sh && \
-    chmod +x /workspace/scripts/start.sh
+# Copy scripts to /opt/partfield/ (NOT /workspace/ which gets overwritten by RunPod volume mount)
+RUN mkdir -p /opt/partfield
+COPY runpod/install.sh /opt/partfield/install.sh
+COPY runpod/start.sh /opt/partfield/start.sh
+RUN chmod +x /opt/partfield/install.sh && \
+    chmod +x /opt/partfield/start.sh
 
 # Expose Gradio port
 EXPOSE 7860
@@ -63,6 +59,5 @@ EXPOSE 7860
 # Set working directory
 WORKDIR /workspace
 
-# Default command: run startup script
-# This will check if installation is complete, then launch Gradio
-CMD ["/workspace/scripts/start.sh"]
+# Default command: run startup script from /opt/partfield/ (persists across volume mounts)
+CMD ["/opt/partfield/start.sh"]

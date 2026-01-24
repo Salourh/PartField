@@ -61,7 +61,7 @@ if [ ! -f "${MARKER_FILE}" ]; then
     log_error "PartField is not installed yet!"
     echo ""
     echo "Please run the installation script first:"
-    echo "  bash /workspace/scripts/install.sh"
+    echo "  bash /opt/partfield/install.sh"
     echo ""
     echo "This will:"
     echo "  • Clone the repository"
