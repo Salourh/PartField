@@ -91,14 +91,20 @@ cd "${REPO_DIR}"
 
 log_phase "PHASE 2: Preparing Conda Environment Configuration"
 
-log_info "Creating modified environment.yml without PyTorch packages..."
+log_info "Creating modified environment.yml without PyTorch/CUDA packages..."
 
-# Use grep to filter out PyTorch-related packages (no Python yaml dependency needed)
-# Remove lines containing pytorch, torchvision, torchaudio, pytorch-cuda, cudatoolkit
-grep -v -E "^\s*-\s*(pytorch|torchvision|torchaudio|pytorch-cuda|cudatoolkit)(\s*=|$)" \
-    environment.yml > environment_no_torch.yml
+# Filter out packages already provided by the NGC base image:
+# - PyTorch packages (will be installed via pip later)
+# - CUDA packages (already in NGC image)
+# - NVIDIA libraries (already in NGC image)
+# - Anaconda meta-packages (pulls in mkl from defaults channel)
+# Also remove the nvidia channel (not needed, causes strict priority conflicts)
+grep -v -E "^\s*-\s*(pytorch|torchvision|torchaudio|pytorch-cuda|cudatoolkit|cuda-|libcublas|libcufft|libcufile|libcurand|libcusolver|libcusparse|libnvjitlink|libnvjpeg|libnvfatbin|libnpp|gds-tools|nsight|_anaconda_depends|anaconda=)" \
+    environment.yml | \
+    grep -v "nvidia/label/cuda" \
+    > environment_no_torch.yml
 
-log_info "Removed PyTorch-related packages from environment.yml"
+log_info "Removed PyTorch, CUDA, and NVIDIA packages from environment.yml"
 
 log_success "Modified environment configuration created"
 
@@ -111,10 +117,14 @@ log_phase "PHASE 3: Creating Conda Environment (This may take 10-12 minutes)"
 # Source conda
 source /opt/conda/etc/profile.d/conda.sh
 
-log_info "Creating conda environment from environment_no_torch.yml..."
-log_info "This will install ~680 packages, please be patient..."
+# Auto-accept ToS and use flexible channel priority
+conda config --set always_yes true
+conda config --set channel_priority flexible
 
-conda env create -f environment_no_torch.yml -p ${WORKSPACE}/miniconda3/envs/${CONDA_ENV}
+log_info "Creating conda environment from environment_no_torch.yml..."
+log_info "This will install packages, please be patient..."
+
+conda env create --yes -f environment_no_torch.yml -p ${WORKSPACE}/miniconda3/envs/${CONDA_ENV}
 
 log_success "Conda environment created successfully"
 

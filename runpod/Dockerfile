@@ -41,10 +41,10 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86
 # Add conda to PATH
 ENV PATH="/opt/conda/bin:${PATH}"
 
-# Configure conda channels (add conda-forge, remove defaults to avoid ToS requirement)
-RUN conda config --add channels conda-forge && \
-    conda config --remove channels defaults && \
-    conda config --set channel_priority strict
+# Configure conda: auto-accept ToS, add conda-forge, use flexible priority
+RUN conda config --set always_yes true && \
+    conda config --add channels conda-forge && \
+    conda config --set channel_priority flexible
 
 # Copy scripts to /opt/partfield/ (NOT /workspace/ which gets overwritten by RunPod volume mount)
 RUN mkdir -p /opt/partfield
