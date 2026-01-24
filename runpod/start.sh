@@ -58,10 +58,7 @@ echo -e "${GREEN}========================================${NC}"
 echo ""
 
 if [ ! -f "${MARKER_FILE}" ]; then
-    log_error "PartField is not installed yet!"
-    echo ""
-    echo "Please run the installation script first:"
-    echo "  bash /opt/partfield/install.sh"
+    log_warning "PartField is not installed yet. Running installation..."
     echo ""
     echo "This will:"
     echo "  • Clone the repository"
@@ -71,7 +68,18 @@ if [ ! -f "${MARKER_FILE}" ]; then
     echo ""
     echo "Installation takes ~10-15 minutes on first run."
     echo ""
-    exit 1
+
+    # Run installation automatically
+    bash /opt/partfield/install.sh
+
+    # Check if installation succeeded
+    if [ ! -f "${MARKER_FILE}" ]; then
+        log_error "Installation failed! Container will stay alive for debugging."
+        echo "You can connect via terminal and run: bash /opt/partfield/install.sh"
+        echo ""
+        # Keep container alive so user can connect and debug
+        sleep infinity
+    fi
 fi
 
 log_success "Installation verified (marker file found)"
