@@ -60,7 +60,7 @@ sudo usermod -aG docker $USER
 
 ```bash
 cd /workspace
-git clone https://github.com/3dlg-hcvc/PartField.git
+git clone https://github.com/Salourh/PartField.git
 cd PartField
 ```
 
