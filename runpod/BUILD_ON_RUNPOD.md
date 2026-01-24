@@ -240,7 +240,7 @@ Then stop/terminate the build pod from RunPod Console to avoid charges.
 ```bash
 # Full build and push workflow
 cd /workspace
-git clone https://github.com/3dlg-hcvc/PartField.git
+git clone https://github.com/Salourh/PartField.git
 cd PartField
 
 # Build

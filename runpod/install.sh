@@ -79,7 +79,7 @@ if [ -d "${REPO_DIR}" ]; then
 else
     log_info "Cloning repository to ${REPO_DIR}..."
     cd "${WORKSPACE}"
-    git clone https://github.com/3dlg-hcvc/PartField.git partfield
+    git clone https://github.com/Salourh/PartField.git partfield
     log_success "Repository cloned successfully"
 fi
 
