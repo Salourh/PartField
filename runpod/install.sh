@@ -93,49 +93,12 @@ log_phase "PHASE 2: Preparing Conda Environment Configuration"
 
 log_info "Creating modified environment.yml without PyTorch packages..."
 
-# Use Python to modify environment.yml
-python3 << 'PYTHON_SCRIPT'
-import yaml
-import sys
+# Use grep to filter out PyTorch-related packages (no Python yaml dependency needed)
+# Remove lines containing pytorch, torchvision, torchaudio, pytorch-cuda, cudatoolkit
+grep -v -E "^\s*-\s*(pytorch|torchvision|torchaudio|pytorch-cuda|cudatoolkit)(\s*=|$)" \
+    environment.yml > environment_no_torch.yml
 
-# Read original environment.yml
-with open('environment.yml', 'r') as f:
-    env = yaml.safe_load(f)
-
-# Packages to remove (PyTorch-related)
-pytorch_packages = [
-    'pytorch', 'torch', 'torchvision', 'torchaudio',
-    'pytorch-cuda', 'cudatoolkit'
-]
-
-# Filter out PyTorch packages from dependencies
-if 'dependencies' in env:
-    original_count = len(env['dependencies'])
-
-    # Handle both string and dict dependencies
-    filtered_deps = []
-    for dep in env['dependencies']:
-        if isinstance(dep, str):
-            # Check if it's a PyTorch package
-            pkg_name = dep.split('=')[0].split('[')[0].strip()
-            if pkg_name.lower() not in [p.lower() for p in pytorch_packages]:
-                filtered_deps.append(dep)
-        elif isinstance(dep, dict):
-            # Keep pip dependencies as-is
-            filtered_deps.append(dep)
-
-    env['dependencies'] = filtered_deps
-    removed_count = original_count - len(filtered_deps)
-
-    print(f"Removed {removed_count} PyTorch-related packages")
-    print(f"Remaining dependencies: {len(filtered_deps)}")
-
-# Write modified environment.yml
-with open('environment_no_torch.yml', 'w') as f:
-    yaml.dump(env, f, default_flow_style=False, sort_keys=False)
-
-print("Created environment_no_torch.yml successfully")
-PYTHON_SCRIPT
+log_info "Removed PyTorch-related packages from environment.yml"
 
 log_success "Modified environment configuration created"
 
