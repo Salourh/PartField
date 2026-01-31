@@ -13,7 +13,7 @@ set -euo pipefail
 WORKSPACE="/workspace"
 REPO_DIR="${WORKSPACE}/partfield"
 CONDA_ENV="partfield"
-MARKER_FILE="${WORKSPACE}/.partfield_v2_installed"
+MARKER_FILE="${WORKSPACE}/.partfield_v3_installed"
 JOBS_DIR="${WORKSPACE}/jobs"
 
 # ============================================================================

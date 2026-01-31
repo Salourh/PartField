@@ -1,7 +1,7 @@
 #!/bin/bash
 # PartField RunPod Installation Script
-# One-time setup: installs conda environment, downloads model, configures workspace
-# Estimated time: 10-15 minutes on first run
+# One-time setup: creates minimal conda env, pip installs dependencies, downloads model
+# Estimated time: 5-8 minutes on first run
 # Subsequent runs: skipped (idempotent via marker file)
 
 set -euo pipefail
@@ -13,8 +13,9 @@ set -euo pipefail
 WORKSPACE="/workspace"
 REPO_DIR="${WORKSPACE}/partfield"
 CONDA_ENV="partfield"
-MARKER_FILE="${WORKSPACE}/.partfield_v2_installed"
-VERSION="2.0"
+CONDA_ENV_PATH="${WORKSPACE}/miniconda3/envs/${CONDA_ENV}"
+MARKER_FILE="${WORKSPACE}/.partfield_v3_installed"
+VERSION="3.0"
 
 # Model configuration
 MODEL_REPO="mikaelaangel/partfield-ckpt"
@@ -25,28 +26,16 @@ MODEL_DIR="${REPO_DIR}/model"
 # Logging Functions
 # ============================================================================
 
-# Colors for logging
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+log_info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+log_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 
 log_phase() {
     echo ""
@@ -86,77 +75,36 @@ fi
 cd "${REPO_DIR}"
 
 # ============================================================================
-# Phase 2: Modify environment.yml (Remove PyTorch Packages)
+# Phase 2: Create Minimal Conda Environment
 # ============================================================================
 
-log_phase "PHASE 2: Preparing Conda Environment Configuration"
+log_phase "PHASE 2: Creating Conda Environment (Python 3.10)"
 
-log_info "Creating modified environment.yml without PyTorch/CUDA packages..."
-
-# Filter out packages already provided by the NGC base image:
-# - PyTorch packages (will be installed via pip later)
-# - CUDA packages (already in NGC image)
-# - NVIDIA libraries (already in NGC image)
-# - Anaconda meta-packages (pulls in mkl from defaults channel)
-# Also remove the nvidia channel (not needed, causes strict priority conflicts)
-grep -v -E "^\s*-\s*(pytorch|torchvision|torchaudio|pytorch-cuda|cudatoolkit|cuda-|libcublas|libcufft|libcufile|libcurand|libcusolver|libcusparse|libnvjitlink|libnvjpeg|libnvfatbin|libnpp|gds-tools|nsight|_anaconda_depends|anaconda=)" \
-    environment.yml | \
-    grep -v "nvidia/label/cuda" \
-    > environment_no_torch.yml
-
-log_info "Removed PyTorch, CUDA, and NVIDIA packages from environment.yml"
-
-log_success "Modified environment configuration created"
-
-# ============================================================================
-# Phase 3: Create Conda Environment
-# ============================================================================
-
-log_phase "PHASE 3: Creating Conda Environment (This may take 10-12 minutes)"
-
-# Source conda
 source /opt/conda/etc/profile.d/conda.sh
-
-# Auto-accept ToS and use flexible channel priority
 conda config --set always_yes true
-conda config --set channel_priority flexible
 
-log_info "Creating conda environment from environment_no_torch.yml..."
-log_info "This will install packages, please be patient..."
+if [ -d "${CONDA_ENV_PATH}" ]; then
+    log_warning "Conda environment already exists, removing..."
+    conda env remove -p "${CONDA_ENV_PATH}" --yes
+fi
 
-conda env create --yes -f environment_no_torch.yml -p ${WORKSPACE}/miniconda3/envs/${CONDA_ENV}
+log_info "Creating clean Python 3.10 environment..."
+conda create --yes -p "${CONDA_ENV_PATH}" python=3.10
 
-log_success "Conda environment created successfully"
+log_success "Conda environment created"
 
-# Activate the environment
-conda activate ${WORKSPACE}/miniconda3/envs/${CONDA_ENV}
-
-# ============================================================================
-# Phase 4: Install Additional Pip Packages
-# ============================================================================
-
-log_phase "PHASE 4: Installing Additional Python Packages"
-
-log_info "Installing lightning, gradio, huggingface_hub, psutil..."
-
-pip install --no-cache-dir \
-    lightning==2.2.0 \
-    gradio \
-    huggingface_hub \
-    psutil
-
-log_success "Additional packages installed"
+conda activate "${CONDA_ENV_PATH}"
+log_info "Python: $(python3 --version) at $(which python3)"
 
 # ============================================================================
-# Phase 5: Install PyTorch (CRITICAL: Install LAST to avoid conflicts)
+# Phase 3: Install PyTorch 2.4.0 + CUDA 12.4
 # ============================================================================
 
-log_phase "PHASE 5: Installing PyTorch 2.4.0 with CUDA 12.4"
+log_phase "PHASE 3: Installing PyTorch 2.4.0 with CUDA 12.4"
 
 log_info "Installing PyTorch from cu124 wheel index..."
-log_info "This ensures compatibility with NVIDIA L4 GPU and CUDA 12.4"
 
-pip install --force-reinstall \
+pip install --no-cache-dir \
     torch==2.4.0 \
     torchvision==0.19.0 \
     torchaudio==2.4.0 \
@@ -164,41 +112,69 @@ pip install --force-reinstall \
 
 log_success "PyTorch 2.4.0+cu124 installed"
 
-# Verify PyTorch installation
-python3 -c "import torch; print(f'PyTorch version: {torch.__version__}')"
-python3 -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+python3 -c "import torch; print(f'PyTorch {torch.__version__}, CUDA available: {torch.cuda.is_available()}')"
 
 # ============================================================================
-# Phase 6: Install torch-scatter
+# Phase 4: Install PartField Dependencies (from README)
 # ============================================================================
 
-log_phase "PHASE 6: Installing torch-scatter"
+log_phase "PHASE 4: Installing PartField Dependencies"
+
+log_info "Installing core ML packages..."
+pip install --no-cache-dir \
+    lightning==2.2.0 \
+    h5py \
+    yacs \
+    trimesh \
+    scikit-image \
+    loguru \
+    boto3 \
+    psutil
+
+log_info "Installing 3D processing packages..."
+pip install --no-cache-dir \
+    mesh2sdf \
+    tetgen \
+    pymeshlab \
+    plyfile \
+    einops \
+    libigl \
+    polyscope \
+    potpourri3d \
+    simple_parsing \
+    arrgh \
+    open3d
 
 log_info "Installing torch-scatter from PyG wheels..."
+pip install --no-cache-dir \
+    torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
 
-pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
+log_info "Installing visualization and web packages..."
+pip install --no-cache-dir \
+    vtk \
+    gradio \
+    huggingface_hub
 
-log_success "torch-scatter installed"
+log_success "All dependencies installed"
 
 # ============================================================================
-# Phase 7: Download Model Checkpoint
+# Phase 5: Download Model Checkpoint
 # ============================================================================
 
-log_phase "PHASE 7: Downloading Model Checkpoint from HuggingFace"
+log_phase "PHASE 5: Downloading Model Checkpoint from HuggingFace"
 
 log_info "Model repository: ${MODEL_REPO}"
-log_info "Model file: ${MODEL_FILE}"
 log_info "Destination: ${MODEL_DIR}/${MODEL_FILE}"
 
-# Create model directory
 mkdir -p "${MODEL_DIR}"
 
-# Download using HuggingFace Hub
-log_info "Downloading model (this may take a few minutes)..."
+if [ -f "${MODEL_DIR}/${MODEL_FILE}" ]; then
+    log_warning "Model file already exists, skipping download"
+else
+    log_info "Downloading model..."
 
-python3 << PYTHON_DOWNLOAD
+    python3 << PYTHON_DOWNLOAD
 from huggingface_hub import hf_hub_download
-import os
 
 try:
     model_path = hf_hub_download(
@@ -209,87 +185,93 @@ try:
     )
     print(f"Model downloaded to: {model_path}")
 except Exception as e:
-    print(f"Error downloading model: {e}")
-    print("\nFallback: You can manually download the model using:")
-    print(f"  wget -O ${MODEL_DIR}/${MODEL_FILE} https://huggingface.co/${MODEL_REPO}/resolve/main/${MODEL_FILE}")
-    raise
+    print(f"Error: {e}")
+    print("Trying wget fallback...")
+    import subprocess, sys
+    result = subprocess.run([
+        "wget", "-O", "${MODEL_DIR}/${MODEL_FILE}",
+        "https://huggingface.co/${MODEL_REPO}/resolve/main/${MODEL_FILE}"
+    ])
+    if result.returncode != 0:
+        sys.exit(1)
 PYTHON_DOWNLOAD
+fi
 
-# Verify model file exists
 if [ -f "${MODEL_DIR}/${MODEL_FILE}" ]; then
     MODEL_SIZE=$(du -h "${MODEL_DIR}/${MODEL_FILE}" | cut -f1)
-    log_success "Model checkpoint downloaded successfully (${MODEL_SIZE})"
+    log_success "Model checkpoint ready (${MODEL_SIZE})"
 else
     log_error "Model checkpoint not found at ${MODEL_DIR}/${MODEL_FILE}"
     exit 1
 fi
 
 # ============================================================================
-# Phase 8: Verification
+# Phase 6: Verification
 # ============================================================================
 
-log_phase "PHASE 8: Verifying Installation"
+log_phase "PHASE 6: Verifying Installation"
 
 log_info "Testing critical imports..."
 
 python3 << 'PYTHON_VERIFY'
 import sys
+
+packages = {}
+
 import torch
+packages["PyTorch"] = torch.__version__
+
 import torch_scatter
+packages["torch-scatter"] = torch_scatter.__version__
+
 import lightning
+packages["Lightning"] = lightning.__version__
+
 import gradio
+packages["Gradio"] = gradio.__version__
 
-print("✓ PyTorch:", torch.__version__)
-print("✓ torch-scatter:", torch_scatter.__version__)
-print("✓ Lightning:", lightning.__version__)
-print("✓ Gradio:", gradio.__version__)
+import trimesh
+packages["trimesh"] = trimesh.__version__
 
-# Check GPU
+import open3d
+packages["Open3D"] = open3d.__version__
+
+for name, version in packages.items():
+    print(f"  {name}: {version}")
+
 if torch.cuda.is_available():
-    print(f"✓ GPU: {torch.cuda.get_device_name(0)}")
-    print(f"✓ CUDA version: {torch.version.cuda}")
-    print(f"✓ GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+    print(f"  GPU: {torch.cuda.get_device_name(0)}")
+    print(f"  CUDA: {torch.version.cuda}")
+    mem_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
+    print(f"  VRAM: {mem_gb:.1f} GB")
 else:
-    print("⚠ WARNING: GPU not detected (this is normal during build)")
-    print("  GPU will be available when running on RunPod")
+    print("  GPU not detected (normal during Docker build)")
 
-print("\nAll critical packages imported successfully!")
+print("\nAll imports OK!")
 PYTHON_VERIFY
 
-log_success "Installation verification complete"
+log_success "Verification complete"
 
 # ============================================================================
 # Create Marker File
 # ============================================================================
 
-log_phase "Finalizing Installation"
-
-# Create marker file with version and timestamp
 echo "PartField RunPod Template v${VERSION}" > "${MARKER_FILE}"
 echo "Installed: $(date)" >> "${MARKER_FILE}"
-echo "Conda environment: ${WORKSPACE}/miniconda3/envs/${CONDA_ENV}" >> "${MARKER_FILE}"
+echo "Conda env: ${CONDA_ENV_PATH}" >> "${MARKER_FILE}"
 echo "Model: ${MODEL_DIR}/${MODEL_FILE}" >> "${MARKER_FILE}"
 
-log_success "Marker file created: ${MARKER_FILE}"
-
 # ============================================================================
-# Installation Complete
+# Done
 # ============================================================================
 
 log_phase "Installation Complete!"
 
-echo ""
 log_success "PartField is ready to use!"
-log_info "Next steps:"
-echo "  1. Run: bash /opt/partfield/start.sh"
-echo "  2. Access Gradio at: http://<pod-url>:7860"
-echo "  3. Upload 3D models and start segmenting!"
 echo ""
-log_info "Installation details:"
-echo "  • Conda environment: ${WORKSPACE}/miniconda3/envs/${CONDA_ENV}"
-echo "  • Repository: ${REPO_DIR}"
-echo "  • Model: ${MODEL_DIR}/${MODEL_FILE}"
-echo "  • Marker file: ${MARKER_FILE}"
+echo "  Conda env: ${CONDA_ENV_PATH}"
+echo "  Repository: ${REPO_DIR}"
+echo "  Model: ${MODEL_DIR}/${MODEL_FILE}"
 echo ""
-log_info "For help, see: ${REPO_DIR}/runpod/README_RUNPOD.md"
+echo "  Next: bash /opt/partfield/start.sh"
 echo ""
