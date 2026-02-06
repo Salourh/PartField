@@ -62,7 +62,7 @@ if [ ! -f "${MARKER_FILE}" ]; then
     echo ""
     echo "This will:"
     echo "  • Clone the repository"
-    echo "  • Create conda environment (~680 packages)"
+    echo "  • Create conda environment with dependencies"
     echo "  • Download model checkpoint (~300MB)"
     echo "  • Verify installation"
     echo ""
@@ -182,11 +182,9 @@ log_info "This may take a few seconds to initialize..."
 cd "${REPO_DIR}"
 
 # Launch Gradio with exec (replaces shell process for clean shutdown)
-# --share flag enables public sharing (required for RunPod proxy)
 # --jobs-dir specifies where to store temporary job files
 exec python3 gradio_app.py \
     --port 7860 \
-    --share \
     --jobs-dir "${JOBS_DIR}"
 
 # Note: exec replaces this shell, so nothing after this line will execute

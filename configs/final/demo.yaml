@@ -1,6 +1,6 @@
 result_name: demo_test
 
-continue_ckpt: model/model.ckpt
+continue_ckpt: model/model_objaverse.ckpt
 
 triplane_channels_low: 128
 triplane_channels_high: 512

@@ -89,6 +89,11 @@ def validate_file(file_path: str) -> Tuple[bool, str]:
     if size_mb > 100:
         return False, f"File too large: {size_mb:.1f}MB (max 100MB)"
 
+    # Check for filenames silently skipped by the inference engine
+    stem = path.stem.lower()
+    if stem in ("car", "complex_car"):
+        return False, f"The filename '{path.name}' is reserved and will be skipped by the model. Please rename your file."
+
     return True, "File valid"
 
 
@@ -170,11 +175,9 @@ def process_3d_file(
     jobs_path = Path(jobs_dir)
     job_dir = jobs_path / job_id
     input_dir = job_dir / "input"
-    features_dir = job_dir / "features"
     output_dir = job_dir / "output"
 
     input_dir.mkdir(parents=True, exist_ok=True)
-    features_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     log(f"Created job directory: {job_id}")
@@ -202,23 +205,6 @@ def process_3d_file(
     progress(0.15, desc="Extracting features...")
     log("Starting feature extraction...")
 
-    # Build inference command
-    inference_cmd = [
-        sys.executable, "partfield_inference.py",
-        "-c", CONFIG_FILE,
-        "--opts",
-        f"continue_ckpt", MODEL_CHECKPOINT,
-        f"result_name", str(features_dir.relative_to(partfield_dir / "exp_results")) if str(features_dir).startswith(str(partfield_dir)) else f"../../{features_dir}",
-        f"dataset.data_path", str(input_dir),
-        f"is_pc", str(is_point_cloud),
-        f"n_point_per_face", str(points_per_face),
-    ]
-
-    if preprocess_mesh and not is_point_cloud:
-        inference_cmd.extend(["preprocess_mesh", "True"])
-
-    # We need to handle the result_name path properly
-    # The script saves to exp_results/{result_name}
     result_name = f"job_{job_id}"
     actual_features_dir = partfield_dir / "exp_results" / result_name
 
@@ -231,6 +217,8 @@ def process_3d_file(
         "dataset.data_path", str(input_dir),
         "is_pc", str(is_point_cloud),
         "n_point_per_face", str(points_per_face),
+        "dataset.val_num_workers", "2",
+        "dataset.val_batch_size", "1",
     ]
 
     if preprocess_mesh and not is_point_cloud:
@@ -335,6 +323,10 @@ def process_3d_file(
 
     # Clear GPU memory after processing
     clear_gpu_memory()
+
+    # Cleanup feature files to save disk space
+    if actual_features_dir.exists():
+        shutil.rmtree(actual_features_dir, ignore_errors=True)
 
     # Check if OBJ files were generated (UV maps preserved)
     has_obj = any(f.endswith('.obj') for f in mesh_files)

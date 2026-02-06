@@ -127,6 +127,10 @@ pip install --no-cache-dir \
     yacs \
     trimesh \
     scikit-image \
+    scikit-learn \
+    scipy \
+    matplotlib \
+    networkx \
     loguru \
     boto3 \
     psutil
@@ -152,7 +156,7 @@ pip install --no-cache-dir \
 log_info "Installing visualization and web packages..."
 pip install --no-cache-dir \
     vtk \
-    gradio \
+    "gradio>=4.0,<5.0" \
     huggingface_hub
 
 log_success "All dependencies installed"

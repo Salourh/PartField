@@ -814,18 +814,27 @@ def solve_clustering(input_fname, uid, view_id, save_dir="test_results1", out_re
             
 if __name__ == '__main__':
 
+    def str2bool(v):
+        if isinstance(v, bool):
+            return v
+        if v.lower() in ('yes', 'true', 't', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', '0'):
+            return False
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--source_dir', default= "", type=str)
     parser.add_argument('--root', default= "", type=str)
     parser.add_argument('--dump_dir', default= "", type=str)
     
     parser.add_argument('--max_num_clusters', default= 20, type=int)
-    parser.add_argument('--use_agglo', default= False, type=bool)
-    parser.add_argument('--is_pc', default= False, type=bool)
+    parser.add_argument('--use_agglo', default= False, type=str2bool)
+    parser.add_argument('--is_pc', default= False, type=str2bool)
     parser.add_argument('--option', default= 1, type=int)
-    parser.add_argument('--with_knn', default= False, type=bool)
+    parser.add_argument('--with_knn', default= False, type=str2bool)
 
-    parser.add_argument('--export_mesh', default= True, type=bool)
+    parser.add_argument('--export_mesh', default= True, type=str2bool)
     parser.add_argument('--output_format', default='auto', choices=['ply', 'obj', 'auto'],
                         help='Output format: ply, obj, or auto (obj if UV available, ply otherwise)')
 
