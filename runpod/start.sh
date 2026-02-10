@@ -4,7 +4,7 @@
 # Estimated time: ~10 seconds
 # Note: This script is run on every pod start
 
-set -euo pipefail
+# No set -e: we handle errors manually to guarantee sleep infinity on failure
 
 # ============================================================================
 # Configuration
@@ -47,6 +47,9 @@ log_step() {
     echo -e "${GREEN}▶${NC} $1"
 }
 
+# Trap: if the script exits for ANY reason, keep the container alive
+trap 'echo ""; log_error "Script exited unexpectedly. Container staying alive for debugging."; log_info "Connect via Web Terminal to inspect logs."; sleep infinity' EXIT
+
 # ============================================================================
 # Check Installation
 # ============================================================================
@@ -69,15 +72,14 @@ if [ ! -f "${MARKER_FILE}" ]; then
     echo "Installation takes ~10-15 minutes on first run."
     echo ""
 
-    # Run installation automatically
-    bash /opt/partfield/install.sh
+    # Run installation automatically (don't exit on failure)
+    bash /opt/partfield/install.sh || true
 
     # Check if installation succeeded
     if [ ! -f "${MARKER_FILE}" ]; then
         log_error "Installation failed! Container will stay alive for debugging."
-        echo "You can connect via terminal and run: bash /opt/partfield/install.sh"
+        echo "You can connect via Web Terminal and run: bash /opt/partfield/install.sh"
         echo ""
-        # Keep container alive so user can connect and debug
         sleep infinity
     fi
 fi
@@ -114,10 +116,10 @@ log_success "System libraries reinstalled"
 log_step "Activating conda environment..."
 
 # Source conda
-source /opt/conda/etc/profile.d/conda.sh
+source /opt/conda/etc/profile.d/conda.sh || { log_error "Failed to source conda"; sleep infinity; }
 
 # Activate environment from /workspace/
-conda activate ${WORKSPACE}/miniconda3/envs/${CONDA_ENV}
+conda activate ${WORKSPACE}/miniconda3/envs/${CONDA_ENV} || { log_error "Failed to activate conda env. Run: bash /opt/partfield/install.sh"; sleep infinity; }
 
 log_success "Conda environment activated: ${CONDA_ENV}"
 
