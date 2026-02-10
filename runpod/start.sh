@@ -181,10 +181,19 @@ log_info "This may take a few seconds to initialize..."
 # Change to repository directory
 cd "${REPO_DIR}"
 
-# Launch Gradio with exec (replaces shell process for clean shutdown)
+# Launch Gradio (without exec so the shell survives if it crashes)
 # --jobs-dir specifies where to store temporary job files
-exec python3 gradio_app.py \
+python3 gradio_app.py \
     --port 7860 \
     --jobs-dir "${JOBS_DIR}"
 
-# Note: exec replaces this shell, so nothing after this line will execute
+EXIT_CODE=$?
+
+# If Gradio exits/crashes, keep container alive for debugging
+echo ""
+log_error "Gradio exited with code ${EXIT_CODE}"
+log_warning "Container will stay alive for debugging."
+log_info "Connect via Web Terminal and check the error above."
+log_info "To restart manually: bash /opt/partfield/start.sh"
+echo ""
+sleep infinity
