@@ -48,6 +48,6 @@ jobs:
           push: true
           tags: |
             timfredfred/partfield-runpod:latest
-            timfredfred/partfield-runpod:v1.0
+            timfredfred/partfield-runpod:v4.0
           cache-from: type=gha
           cache-to: type=gha,mode=max

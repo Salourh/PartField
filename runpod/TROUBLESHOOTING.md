@@ -26,8 +26,7 @@ Ce script vérifie automatiquement :
 - ✓ État de l'installation
 - ✓ Présence du repository et des fichiers critiques
 - ✓ Téléchargement du modèle
-- ✓ Environment conda
-- ✓ Packages Python installés
+- ✓ Environnement Python et packages pip
 - ✓ Connectivité réseau
 - ✓ Processus en cours d'exécution
 
@@ -54,7 +53,7 @@ Les erreurs nécessitent une action. Voir [Problèmes Courants](#problèmes-cour
 
 **Symptôme** :
 ```
-[FAIL] Installation marker NOT found at /workspace/.partfield_v3_installed
+[FAIL] Installation marker NOT found at /workspace/.partfield_v4_installed
 ```
 
 **Cause** : L'installation n'a jamais été exécutée ou a échoué.
@@ -64,7 +63,7 @@ Les erreurs nécessitent une action. Voir [Problèmes Courants](#problèmes-cour
 bash /opt/partfield/install.sh
 ```
 
-**Temps attendu** : 10-15 minutes lors de la première installation.
+**Temps attendu** : 5-8 minutes lors de la première installation.
 
 ---
 
@@ -79,7 +78,7 @@ bash /opt/partfield/install.sh
 
 **Solution 1 - Réexécuter l'installation** :
 ```bash
-rm /workspace/.partfield_v3_installed
+rm /workspace/.partfield_v4_installed
 bash /opt/partfield/install.sh
 ```
 
@@ -99,79 +98,17 @@ ls -lh /workspace/partfield/model/model_objaverse.ckpt
 
 ---
 
-### 3. Conda Environment Introuvable
-
-**Symptôme** :
-```
-[FAIL] Conda environment NOT found: /workspace/miniconda3/envs/partfield
-```
-
-**Cause** : L'installation de conda a échoué ou l'environnement n'a pas été créé.
-
-**Solution** :
-```bash
-# Supprimer le marker et réinstaller
-rm /workspace/.partfield_v3_installed
-rm -rf /workspace/miniconda3
-
-# Réexécuter l'installation
-bash /opt/partfield/install.sh
-```
-
-**Note** : Cette opération prend 10-15 minutes.
-
----
-
-### 4. Échec d'Activation Conda
-
-**Symptôme** :
-```
-[FAIL] Failed to activate conda environment
-```
-
-**Diagnostic** :
-```bash
-# Vérifier que conda est disponible
-source /opt/conda/etc/profile.d/conda.sh
-conda --version
-
-# Lister les environnements
-conda env list
-
-# Essayer d'activer manuellement
-conda activate /workspace/miniconda3/envs/partfield
-```
-
-**Solution si l'environnement existe** :
-```bash
-# Réinitialiser conda
-source /opt/conda/etc/profile.d/conda.sh
-conda activate /workspace/miniconda3/envs/partfield
-
-# Tester Python
-python3 --version
-which python3
-```
-
-**Solution si l'environnement n'existe pas** :
-Réexécuter l'installation (voir problème #3).
-
----
-
-### 5. Packages Python Manquants
+### 3. Packages Python Manquants
 
 **Symptôme** :
 ```
 ✗ PyTorch: FAILED - No module named 'torch'
 ```
 
-**Cause** : Les dépendances n'ont pas été installées ou l'environnement conda n'est pas activé.
+**Cause** : Les dépendances n'ont pas été installées correctement.
 
 **Diagnostic** :
 ```bash
-source /opt/conda/etc/profile.d/conda.sh
-conda activate /workspace/miniconda3/envs/partfield
-
 # Vérifier les packages installés
 pip list | grep torch
 pip list | grep gradio
@@ -188,13 +125,13 @@ pip install lightning==2.2.0 gradio huggingface_hub
 
 **Solution complète** :
 ```bash
-rm /workspace/.partfield_v3_installed
+rm /workspace/.partfield_v4_installed
 bash /opt/partfield/install.sh
 ```
 
 ---
 
-### 6. GPU Non Détecté
+### 4. GPU Non Détecté
 
 **Symptôme** :
 ```
@@ -228,9 +165,6 @@ python3 -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 3. **PyTorch sans support CUDA** :
    ```bash
    # Réinstaller PyTorch avec CUDA
-   source /opt/conda/etc/profile.d/conda.sh
-   conda activate /workspace/miniconda3/envs/partfield
-
    pip uninstall torch torchvision torchaudio -y
    pip install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 \
      --index-url https://download.pytorch.org/whl/cu124
@@ -238,7 +172,7 @@ python3 -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 
 ---
 
-### 7. Gradio Ne Démarre Pas
+### 5. Gradio Ne Démarre Pas
 
 **Symptôme** :
 ```
@@ -269,7 +203,7 @@ git clone https://github.com/Salourh/PartField.git partfield
 ```
 
 **Solution si imports échouent** :
-Réexécuter l'installation (voir problème #5).
+Réexécuter l'installation (voir problème #3).
 
 **Logs détaillés** :
 ```bash
@@ -280,7 +214,7 @@ python3 gradio_app.py --port 7860 --jobs-dir /workspace/jobs
 
 ---
 
-### 8. Erreur "Out of Memory" (OOM)
+### 6. Erreur "Out of Memory" (OOM)
 
 **Symptôme** :
 ```
@@ -313,7 +247,7 @@ RuntimeError: CUDA out of memory
 
 ---
 
-### 9. Port 7860 Non Accessible
+### 7. Port 7860 Non Accessible
 
 **Symptôme** : Impossible d'accéder à l'interface Gradio via le navigateur.
 
@@ -347,7 +281,7 @@ curl http://localhost:7860
 
 ---
 
-### 10. Problèmes de Connectivité Réseau
+### 8. Problèmes de Connectivité Réseau
 
 **Symptôme** :
 ```
@@ -405,32 +339,22 @@ python3 /workspace/partfield/gradio_app.py --port 7860 --jobs-dir /workspace/job
 
 ### Vérification Manuelle des Composants
 
-#### 1. Conda
+#### 1. Python et Packages
 ```bash
-source /opt/conda/etc/profile.d/conda.sh
-conda info
-conda env list
-```
-
-#### 2. Python et Packages
-```bash
-source /opt/conda/etc/profile.d/conda.sh
-conda activate /workspace/miniconda3/envs/partfield
-
 python3 --version
 pip list | head -20
 python3 -c "import torch; print(torch.__version__); print(torch.cuda.is_available())"
 ```
 
-#### 3. GPU
+#### 2. GPU
 ```bash
 nvidia-smi
 python3 -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"None\"}')"
 ```
 
-#### 4. Fichiers Critiques
+#### 3. Fichiers Critiques
 ```bash
-ls -lh /workspace/.partfield_v3_installed
+ls -lh /workspace/.partfield_v4_installed
 ls -lh /workspace/partfield/gradio_app.py
 ls -lh /workspace/partfield/model/model_objaverse.ckpt
 ls -lh /workspace/partfield/configs/final/demo.yaml
@@ -446,9 +370,8 @@ Si tout le reste échoue, réinstallation complète :
 
 ```bash
 # 1. Supprimer toutes les installations
-rm -f /workspace/.partfield_v3_installed
+rm -f /workspace/.partfield_v4_installed
 rm -rf /workspace/partfield
-rm -rf /workspace/miniconda3
 
 # 2. Réinstaller
 bash /opt/partfield/install.sh
@@ -460,7 +383,7 @@ bash /opt/partfield/diagnose.sh
 bash /opt/partfield/start.sh
 ```
 
-**Temps total** : ~15-20 minutes
+**Temps total** : ~10 minutes
 
 ### Réinitialisation Partielle
 
@@ -468,16 +391,13 @@ Si seuls les packages Python sont corrompus :
 
 ```bash
 # 1. Supprimer le marker
-rm /workspace/.partfield_v3_installed
+rm /workspace/.partfield_v4_installed
 
-# 2. Supprimer l'environnement conda
-rm -rf /workspace/miniconda3/envs/partfield
-
-# 3. Réexécuter l'installation (créera un nouvel environnement)
+# 2. Réexécuter l'installation (réinstallera les packages pip)
 bash /opt/partfield/install.sh
 ```
 
-**Temps** : ~10 minutes
+**Temps** : ~5-8 minutes
 
 ### Conservation des Données
 

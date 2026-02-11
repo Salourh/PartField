@@ -46,12 +46,11 @@ bash /opt/partfield/install.sh
 
 This will:
 - Clone the PartField repository
-- Create conda environment with 680+ packages
-- Install PyTorch 2.4.0 with CUDA 12.4
+- Install PyTorch 2.4.0 with CUDA 12.4 and all dependencies via pip
 - Download model checkpoint (~300MB)
 - Verify installation
 
-**Expected time**: 10-15 minutes (one-time only)
+**Expected time**: 5-8 minutes (one-time only)
 
 ### 3. Access the Application
 
@@ -81,7 +80,6 @@ bash /opt/partfield/start.sh
 This will:
 - Verify installation
 - Reinstall system libraries
-- Activate conda environment
 - Check GPU availability
 - Launch Gradio on port 7860
 
@@ -97,10 +95,7 @@ If you need to reinstall:
 
 ```bash
 # Delete marker file
-rm /workspace/.partfield_v3_installed
-
-# Delete conda environment (optional)
-rm -rf /workspace/miniconda3/envs/partfield
+rm /workspace/.partfield_v4_installed
 
 # Run installation again
 bash /opt/partfield/install.sh
@@ -110,12 +105,10 @@ bash /opt/partfield/install.sh
 
 ```bash
 # Check if installed
-cat /workspace/.partfield_v3_installed
+cat /workspace/.partfield_v4_installed
 
-# Verify conda environment
-source /opt/conda/etc/profile.d/conda.sh
-conda activate /workspace/miniconda3/envs/partfield
-python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
+# Verify Python packages
+python3 -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
 ```
 
 ---
@@ -258,28 +251,20 @@ n_clusters: 4
    ps aux | grep gradio_app.py
    ```
 
-### Conda Environment Issues
+### Import Errors or Missing Packages
 
-**Symptoms**: Import errors, missing packages, or activation failures
+**Symptoms**: Import errors or missing packages
 
 **Solutions**:
 
-1. **Verify environment exists**:
+1. **Test imports manually**:
    ```bash
-   ls -la /workspace/miniconda3/envs/partfield
+   python3 -c "import torch, gradio, lightning; print('OK')"
    ```
 
-2. **Manually activate and test**:
+2. **Reinstall** (last resort):
    ```bash
-   source /opt/conda/etc/profile.d/conda.sh
-   conda activate /workspace/miniconda3/envs/partfield
-   python -c "import torch, gradio, lightning; print('OK')"
-   ```
-
-3. **Reinstall environment** (last resort):
-   ```bash
-   rm -rf /workspace/miniconda3/envs/partfield
-   rm /workspace/.partfield_v3_installed
+   rm /workspace/.partfield_v4_installed
    bash /opt/partfield/install.sh
    ```
 
@@ -304,14 +289,12 @@ After installation, `/workspace/` contains:
 
 ```
 /workspace/
-├── .partfield_v3_installed          # Installation marker (version + timestamp)
+├── .partfield_v4_installed          # Installation marker (version + timestamp)
 ├── (scripts are in /opt/partfield/ inside the Docker image)
 │   # /opt/partfield/install.sh       # One-time installation
 │   # /opt/partfield/start.sh         # Quick restart script
 ├── partfield/                        # Cloned repository
 │   ├── gradio_app.py                 # Main Gradio application
-│   ├── environment.yml               # Original conda config
-│   ├── environment_no_torch.yml      # Modified config (generated)
 │   ├── configs/
 │   │   └── final/demo.yaml           # Inference configuration
 │   ├── partfield/                    # Core package
@@ -322,24 +305,17 @@ After installation, `/workspace/` contains:
 │       ├── install.sh
 │       ├── start.sh
 │       └── README_RUNPOD.md (this file)
-├── jobs/                             # Gradio temporary results
-│   └── <job-id>/                     # Auto-deleted after 24 hours
-│       ├── upload/                   # Uploaded model
-│       ├── features/                 # Extracted features
-│       └── clustering/               # Segmentation results
-└── miniconda3/                       # Conda installation
-    └── envs/
-        └── partfield/                # Conda environment (15GB, 680+ packages)
-            ├── bin/python
-            ├── lib/
-            └── ...
+└── jobs/                             # Gradio temporary results
+    └── <job-id>/                     # Auto-deleted after 24 hours
+        ├── upload/                   # Uploaded model
+        ├── features/                 # Extracted features
+        └── clustering/               # Segmentation results
 ```
 
 ### Important Files
 
-- **Installation marker**: `/workspace/.partfield_v3_installed`
+- **Installation marker**: `/workspace/.partfield_v4_installed`
 - **Model checkpoint**: `/workspace/partfield/model/model_objaverse.ckpt`
-- **Conda environment**: `/workspace/miniconda3/envs/partfield/`
 - **Gradio app**: `/workspace/partfield/gradio_app.py`
 - **Job results**: `/workspace/jobs/<job-id>/`
 
@@ -347,8 +323,8 @@ After installation, `/workspace/` contains:
 
 **Persistent** (survives pod restarts):
 - `/workspace/` and all contents
-- Conda environment
 - Model checkpoint
+- Installed pip packages (in system Python)
 - Job results (until 24-hour cleanup)
 
 **Temporary** (reset on restart):
@@ -376,12 +352,12 @@ After installation, `/workspace/` contains:
 | Component | Size |
 |-----------|------|
 | Docker image | ~8GB |
-| Conda environment | ~15GB |
+| Pip packages | ~3GB |
 | Model checkpoint | ~300MB |
 | Job results (per job) | ~10-50MB |
-| **Total persistent** | **~24GB** |
+| **Total persistent** | **~12GB** |
 
-**Recommended volume size**: 25GB minimum
+**Recommended volume size**: 15GB minimum
 
 ### Cost Estimates (NVIDIA L4)
 

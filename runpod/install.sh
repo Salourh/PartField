@@ -1,6 +1,6 @@
 #!/bin/bash
 # PartField RunPod Installation Script
-# One-time setup: creates minimal conda env, pip installs dependencies, downloads model
+# One-time setup: pip installs dependencies, downloads model
 # Estimated time: 5-8 minutes on first run
 # Subsequent runs: skipped (idempotent via marker file)
 
@@ -12,10 +12,8 @@ set -euo pipefail
 
 WORKSPACE="/workspace"
 REPO_DIR="${WORKSPACE}/partfield"
-CONDA_ENV="partfield"
-CONDA_ENV_PATH="${WORKSPACE}/miniconda3/envs/${CONDA_ENV}"
-MARKER_FILE="${WORKSPACE}/.partfield_v3_installed"
-VERSION="3.0"
+MARKER_FILE="${WORKSPACE}/.partfield_v4_installed"
+VERSION="4.0"
 
 # Model configuration
 MODEL_REPO="mikaelaangel/partfield-ckpt"
@@ -109,54 +107,13 @@ done
 log_success "Repository verification complete"
 
 # ============================================================================
-# Phase 2: Create Minimal Conda Environment
+# Phase 2: Install PyTorch 2.4.0 + CUDA 12.4
 # ============================================================================
 
-log_phase "PHASE 2: Creating Conda Environment (Python 3.10)"
-
-log_debug "Checking conda installation..."
-if [ ! -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-    error_exit "Conda not found at /opt/conda. Docker image may be corrupted."
-fi
-
-log_debug "Sourcing conda..."
-source /opt/conda/etc/profile.d/conda.sh || error_exit "Failed to source conda"
-
-log_debug "Configuring conda..."
-conda config --set always_yes true
-
-log_debug "Target conda environment path: ${CONDA_ENV_PATH}"
-if [ -d "${CONDA_ENV_PATH}" ]; then
-    log_warning "Conda environment already exists, removing..."
-    log_debug "Running: conda env remove -p ${CONDA_ENV_PATH}"
-    conda env remove -p "${CONDA_ENV_PATH}" --yes || log_warning "Failed to remove old environment (continuing anyway)"
-    rm -rf "${CONDA_ENV_PATH}" 2>/dev/null || true
-fi
-
-log_info "Creating clean Python 3.10 environment..."
-log_debug "Running: conda create --yes -p ${CONDA_ENV_PATH} python=3.10"
-CONDA_OUTPUT=$(conda create --yes --quiet -p "${CONDA_ENV_PATH}" python=3.10 2>&1)
-if [ $? -ne 0 ]; then
-    echo "${CONDA_OUTPUT}"
-    error_exit "Failed to create conda environment. Check disk space and conda installation."
-fi
-
-log_success "Conda environment created"
-
-log_debug "Activating conda environment..."
-if ! conda activate "${CONDA_ENV_PATH}"; then
-    error_exit "Failed to activate conda environment at ${CONDA_ENV_PATH}"
-fi
+log_phase "PHASE 2: Installing PyTorch 2.4.0 with CUDA 12.4"
 
 log_info "Python: $(python3 --version) at $(which python3)"
-log_debug "Python path: $(python3 -c 'import sys; print(sys.executable)')"
 log_debug "Pip version: $(pip --version)"
-
-# ============================================================================
-# Phase 3: Install PyTorch 2.4.0 + CUDA 12.4
-# ============================================================================
-
-log_phase "PHASE 3: Installing PyTorch 2.4.0 with CUDA 12.4"
 
 log_info "Installing PyTorch 2.4.0+cu124 (this may take 2-3 minutes)..."
 
@@ -194,10 +151,10 @@ fi
 log_success "PyTorch verification complete"
 
 # ============================================================================
-# Phase 4: Install PartField Dependencies (from README)
+# Phase 3: Install PartField Dependencies (from README)
 # ============================================================================
 
-log_phase "PHASE 4: Installing PartField Dependencies"
+log_phase "PHASE 3: Installing PartField Dependencies"
 
 log_info "Installing core ML packages (lightning, scipy, sklearn, etc.)..."
 PIP_OUTPUT=$(pip install --no-cache-dir --quiet \
@@ -262,10 +219,10 @@ log_success "Visualization packages installed (3 packages)"
 log_success "All dependencies installed successfully"
 
 # ============================================================================
-# Phase 5: Download Model Checkpoint
+# Phase 4: Download Model Checkpoint
 # ============================================================================
 
-log_phase "PHASE 5: Downloading Model Checkpoint from HuggingFace"
+log_phase "PHASE 4: Downloading Model Checkpoint from HuggingFace"
 
 log_info "Model repository: ${MODEL_REPO}"
 log_info "Destination: ${MODEL_DIR}/${MODEL_FILE}"
@@ -378,10 +335,10 @@ else
 fi
 
 # ============================================================================
-# Phase 6: Verification
+# Phase 5: Verification
 # ============================================================================
 
-log_phase "PHASE 6: Verifying Installation"
+log_phase "PHASE 5: Verifying Installation"
 
 log_info "Testing critical imports..."
 log_debug "This verifies all packages are installed correctly"
@@ -472,7 +429,6 @@ log_success "Verification complete - all packages working correctly"
 
 echo "PartField RunPod Template v${VERSION}" > "${MARKER_FILE}"
 echo "Installed: $(date)" >> "${MARKER_FILE}"
-echo "Conda env: ${CONDA_ENV_PATH}" >> "${MARKER_FILE}"
 echo "Model: ${MODEL_DIR}/${MODEL_FILE}" >> "${MARKER_FILE}"
 
 # ============================================================================
@@ -483,7 +439,6 @@ log_phase "Installation Complete!"
 
 log_success "PartField is ready to use!"
 echo ""
-echo "  Conda env: ${CONDA_ENV_PATH}"
 echo "  Repository: ${REPO_DIR}"
 echo "  Model: ${MODEL_DIR}/${MODEL_FILE}"
 echo ""

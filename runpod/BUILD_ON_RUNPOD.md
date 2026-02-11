@@ -74,9 +74,8 @@ docker build -t partfield-runpod:test -f runpod/Dockerfile .
 **What happens during build:**
 1. Downloads NVIDIA PyTorch NGC base image (~8GB, first time only)
 2. Installs system libraries (libgl1, libx11, etc.)
-3. Installs Miniconda
-4. Copies scripts (install.sh, start.sh)
-5. Sets up working directory and CMD
+3. Copies scripts (install.sh, start.sh, diagnose.sh)
+4. Sets up working directory and CMD
 
 **Expected time**: 5-10 minutes (first build), 1-2 minutes (subsequent builds with cache)
 
@@ -119,11 +118,11 @@ docker run --rm -it \
 Inside the container, verify:
 
 ```bash
-# Check conda is available
-conda --version
-
 # Check scripts are executable
 ls -la /opt/partfield/
+
+# Check Python is available
+python3 --version
 
 # Exit container
 exit
@@ -151,14 +150,14 @@ nvidia-smi
 # Run installation script
 bash /opt/partfield/install.sh
 
-# This will take 10-15 minutes - watch for errors
+# This will take 5-8 minutes - watch for errors
 # Should complete with "Installation Complete!" message
 ```
 
 **What to watch for:**
-- ✓ All 8 phases complete successfully
-- ✓ Conda environment created
+- ✓ All 5 phases complete successfully
 - ✓ PyTorch installed with CUDA support
+- ✓ All pip dependencies installed
 - ✓ Model downloaded (~300MB)
 - ✓ GPU detected in verification phase
 - ✓ Marker file created
@@ -185,7 +184,7 @@ bash /opt/partfield/start.sh
 ```
 
 **Success criteria:**
-- ✓ Installation takes 10-15 minutes (first run)
+- ✓ Installation takes 5-8 minutes (first run)
 - ✓ Restart takes ~10 seconds
 - ✓ GPU detected on both runs
 - ✓ Gradio starts without errors
@@ -200,11 +199,11 @@ docker login
 # Enter your Docker Hub username and password
 
 # Tag the image for Docker Hub
-docker tag partfield-runpod:test timfredfred/partfield-runpod:v1.0
+docker tag partfield-runpod:test timfredfred/partfield-runpod:v4.0
 docker tag partfield-runpod:test timfredfred/partfield-runpod:latest
 
 # Push both tags (this will take 10-15 minutes for ~8-10GB image)
-docker push timfredfred/partfield-runpod:v1.0
+docker push timfredfred/partfield-runpod:v4.0
 docker push timfredfred/partfield-runpod:latest
 ```
 
@@ -215,7 +214,7 @@ docker push timfredfred/partfield-runpod:latest
 ## Step 10: Verify on Docker Hub
 
 1. Go to https://hub.docker.com/r/timfredfred/partfield-runpod
-2. Verify both tags are present: `v1.0` and `latest`
+2. Verify both tags are present: `v4.0` and `latest`
 3. Check image size and last updated timestamp
 4. Optionally add description and README
 
@@ -229,7 +228,7 @@ rm -rf /workspace/test-partfield
 
 # Remove Docker images to free space (optional)
 docker rmi partfield-runpod:test
-docker rmi timfredfred/partfield-runpod:v1.0
+docker rmi timfredfred/partfield-runpod:v4.0
 docker rmi timfredfred/partfield-runpod:latest
 ```
 
@@ -258,9 +257,9 @@ docker run --gpus all -it -p 7860:7860 \
 
 # Push to Docker Hub
 docker login
-docker tag partfield-runpod:test timfredfred/partfield-runpod:v1.0
+docker tag partfield-runpod:test timfredfred/partfield-runpod:v4.0
 docker tag partfield-runpod:test timfredfred/partfield-runpod:latest
-docker push timfredfred/partfield-runpod:v1.0
+docker push timfredfred/partfield-runpod:v4.0
 docker push timfredfred/partfield-runpod:latest
 ```
 

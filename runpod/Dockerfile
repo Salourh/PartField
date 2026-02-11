@@ -8,7 +8,7 @@ FROM nvcr.io/nvidia/pytorch:24.05-py3
 # Metadata
 LABEL maintainer="PartField Team"
 LABEL description="RunPod template for PartField 3D part segmentation with Gradio interface"
-LABEL version="1.0"
+LABEL version="4.0"
 LABEL gpu.recommended="NVIDIA L4 (24GB VRAM)"
 
 # Set environment variables
@@ -17,7 +17,7 @@ ENV PYTHONUNBUFFERED=1
 ENV GRADIO_SERVER_PORT=7860
 ENV GRADIO_SERVER_NAME=0.0.0.0
 
-# Install system dependencies (required for OpenGL, X11, and conda)
+# Install system dependencies (required for OpenGL, X11)
 # These need to be in Docker because they require root and don't persist on RunPod
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libx11-6 \
@@ -30,19 +30,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Miniconda to /opt/conda (persistent across rebuilds)
-# Note: Conda environments will be created in /workspace/ for persistence
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
-    bash /tmp/miniconda.sh -b -p /opt/conda && \
-    rm /tmp/miniconda.sh && \
-    /opt/conda/bin/conda clean -a -y
-
-# Add conda to PATH
-ENV PATH="/opt/conda/bin:${PATH}"
-
-# Configure conda: auto-accept ToS
-RUN conda config --set always_yes true
 
 # Copy scripts to /opt/partfield/ (NOT /workspace/ which gets overwritten by RunPod volume mount)
 RUN mkdir -p /opt/partfield

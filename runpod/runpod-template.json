@@ -1,9 +1,9 @@
 {
   "name": "PartField - 3D Part Segmentation",
-  "description": "ICCV 2025 research project for 3D part segmentation using PartField neural features. Optimized for NVIDIA L4 GPU (24GB VRAM). Includes Gradio web interface for interactive segmentation of 3D models (OBJ, GLB, PLY, OFF formats). First-time setup: ~15 minutes. Restarts: ~10 seconds. Per-model segmentation: 2-5 minutes.",
+  "description": "ICCV 2025 research project for 3D part segmentation using PartField neural features. Optimized for NVIDIA L4 GPU (24GB VRAM). Includes Gradio web interface for interactive segmentation of 3D models (OBJ, GLB, PLY, OFF formats). First-time setup: ~5-8 minutes. Restarts: ~10 seconds. Per-model segmentation: 2-5 minutes.",
   "dockerImage": "timfredfred/partfield-runpod:latest",
   "containerDiskSize": 20,
-  "volumeSize": 25,
+  "volumeSize": 15,
   "volumeMountPath": "/workspace",
   "ports": [
     {
@@ -23,7 +23,7 @@
     }
   ],
   "startCommand": "/opt/partfield/start.sh",
-  "readme": "# PartField - 3D Part Segmentation\n\n## Quick Start\n\n1. **First-time setup** (required once):\n   ```bash\n   bash /opt/partfield/install.sh\n   ```\n   This takes ~10-15 minutes to install conda environment and download model.\n\n2. **Access Gradio**:\n   Open the HTTP service URL (port 7860) from pod details.\n\n3. **Upload and segment**:\n   - Upload 3D model (OBJ, GLB, PLY, OFF)\n   - Configure parameters (defaults work well)\n   - Click 'Segment 3D Model'\n   - Wait 2-5 minutes for results\n   - Download segmented model\n\n## GPU Recommendations\n\n- **Primary**: NVIDIA L4 (24GB VRAM) - Best price/performance\n- **Budget**: RTX A4000 (16GB) - Reduce points_per_face if OOM\n- **High-end**: RTX A5000, A10, RTX 4090 (24GB) - Faster but pricier\n\n## Troubleshooting\n\n**GPU OOM**: Reduce `points_per_face` to 1000 or 500\n**Installation failed**: Retry with `bash /opt/partfield/install.sh`\n**No GPU**: Verify GPU assigned in pod settings\n\nFull guide: `/workspace/partfield/runpod/README_RUNPOD.md`\n\n## Support\n\n- GitHub: https://github.com/Salourh/PartField\n- Paper: https://arxiv.org/abs/2412.05972\n- Issues: https://github.com/Salourh/PartField/issues",
+  "readme": "# PartField - 3D Part Segmentation\n\n## Quick Start\n\n1. **First-time setup** (required once):\n   ```bash\n   bash /opt/partfield/install.sh\n   ```\n   This takes ~5-8 minutes to install pip dependencies and download model.\n\n2. **Access Gradio**:\n   Open the HTTP service URL (port 7860) from pod details.\n\n3. **Upload and segment**:\n   - Upload 3D model (OBJ, GLB, PLY, OFF)\n   - Configure parameters (defaults work well)\n   - Click 'Segment 3D Model'\n   - Wait 2-5 minutes for results\n   - Download segmented model\n\n## GPU Recommendations\n\n- **Primary**: NVIDIA L4 (24GB VRAM) - Best price/performance\n- **Budget**: RTX A4000 (16GB) - Reduce points_per_face if OOM\n- **High-end**: RTX A5000, A10, RTX 4090 (24GB) - Faster but pricier\n\n## Troubleshooting\n\n**GPU OOM**: Reduce `points_per_face` to 1000 or 500\n**Installation failed**: Retry with `bash /opt/partfield/install.sh`\n**No GPU**: Verify GPU assigned in pod settings\n\nFull guide: `/workspace/partfield/runpod/README_RUNPOD.md`\n\n## Support\n\n- GitHub: https://github.com/Salourh/PartField\n- Paper: https://arxiv.org/abs/2412.05972\n- Issues: https://github.com/Salourh/PartField/issues",
   "minGpu": 1,
   "minGpuMemory": 20,
   "recommendedGpu": "NVIDIA L4",

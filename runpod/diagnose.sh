@@ -18,9 +18,7 @@ log_section() { echo ""; echo -e "${GREEN}=== $1 ===${NC}"; }
 
 WORKSPACE="/workspace"
 REPO_DIR="${WORKSPACE}/partfield"
-CONDA_ENV="partfield"
-CONDA_ENV_PATH="${WORKSPACE}/miniconda3/envs/${CONDA_ENV}"
-MARKER_FILE="${WORKSPACE}/.partfield_v3_installed"
+MARKER_FILE="${WORKSPACE}/.partfield_v4_installed"
 
 echo ""
 echo -e "${GREEN}======================================${NC}"
@@ -96,44 +94,17 @@ else
     log_error "Model checkpoint NOT found: ${MODEL_PATH}"
 fi
 
-# Conda Check
-log_section "Conda Environment"
-if [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-    log_success "Conda installation found"
-    source /opt/conda/etc/profile.d/conda.sh
-
-    echo "Conda version: $(conda --version 2>&1)"
-
-    if [ -d "${CONDA_ENV_PATH}" ]; then
-        log_success "Conda environment exists: ${CONDA_ENV_PATH}"
-        echo "Environment size: $(du -sh ${CONDA_ENV_PATH} 2>&1 | cut -f1)"
-
-        # Try to activate
-        if conda activate "${CONDA_ENV_PATH}" 2>&1; then
-            log_success "Conda environment activated"
-            echo "Python: $(which python3)"
-            echo "Python version: $(python3 --version 2>&1)"
-        else
-            log_error "Failed to activate conda environment"
-        fi
-    else
-        log_error "Conda environment NOT found: ${CONDA_ENV_PATH}"
-        echo "Available environments in ${WORKSPACE}/miniconda3/envs/:"
-        ls -la "${WORKSPACE}/miniconda3/envs/" 2>&1 || echo "Directory not found"
-    fi
-else
-    log_error "Conda NOT found at /opt/conda"
-fi
+# Python Environment Check
+log_section "Python Environment"
+echo "Python: $(which python3)"
+echo "Python version: $(python3 --version 2>&1)"
+echo "Pip version: $(pip --version 2>&1)"
 
 # Python Package Check
 log_section "Python Packages"
-if [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-    source /opt/conda/etc/profile.d/conda.sh
+echo "Testing critical package imports..."
 
-    if conda activate "${CONDA_ENV_PATH}" 2>/dev/null; then
-        echo "Testing critical package imports..."
-
-        python3 << 'PYTHON_CHECK'
+python3 << 'PYTHON_CHECK'
 import sys
 
 packages_to_check = [
@@ -173,12 +144,6 @@ try:
 except:
     pass
 PYTHON_CHECK
-    else
-        log_error "Cannot activate conda environment for package check"
-    fi
-else
-    log_error "Cannot check packages - conda not available"
-fi
 
 # Network Check
 log_section "Network Connectivity"
@@ -227,8 +192,7 @@ echo ""
 echo "Common issues:"
 echo "  • No installation marker → Run: bash /opt/partfield/install.sh"
 echo "  • Missing model file → Re-run installation or download manually"
-echo "  • Conda environment missing → Re-run installation"
-echo "  • Import failures → Check conda environment or re-run installation"
+echo "  • Import failures → Re-run installation"
 echo "  • No GPU detected → Check RunPod GPU assignment"
 echo ""
 echo "For help, see: /workspace/partfield/runpod/README_RUNPOD.md"

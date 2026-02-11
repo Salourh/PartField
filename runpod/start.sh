@@ -12,8 +12,7 @@
 
 WORKSPACE="/workspace"
 REPO_DIR="${WORKSPACE}/partfield"
-CONDA_ENV="partfield"
-MARKER_FILE="${WORKSPACE}/.partfield_v3_installed"
+MARKER_FILE="${WORKSPACE}/.partfield_v4_installed"
 JOBS_DIR="${WORKSPACE}/jobs"
 
 # ============================================================================
@@ -69,11 +68,11 @@ if [ ! -f "${MARKER_FILE}" ]; then
     echo ""
     echo "This will:"
     echo "  • Clone the repository"
-    echo "  • Create conda environment with dependencies"
+    echo "  • Install pip dependencies"
     echo "  • Download model checkpoint (~300MB)"
     echo "  • Verify installation"
     echo ""
-    echo "Installation takes ~10-15 minutes on first run."
+    echo "Installation takes ~5-8 minutes on first run."
     echo ""
 
     # Run installation automatically (don't exit on failure)
@@ -116,67 +115,6 @@ if [ $? -ne 0 ]; then
 fi
 
 log_success "System libraries reinstalled"
-
-# ============================================================================
-# Activate Conda Environment
-# ============================================================================
-
-log_step "Activating conda environment..."
-
-# Verify conda exists
-if [ ! -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-    log_error "Conda not found at /opt/conda. Docker image may be corrupted."
-    sleep infinity
-fi
-
-log_debug "Sourcing conda from /opt/conda..."
-source /opt/conda/etc/profile.d/conda.sh || {
-    log_error "Failed to source conda"
-    log_debug "Check if /opt/conda/etc/profile.d/conda.sh exists and is readable"
-    sleep infinity
-}
-
-# Verify environment exists
-CONDA_ENV_PATH="${WORKSPACE}/miniconda3/envs/${CONDA_ENV}"
-log_debug "Expected conda env path: ${CONDA_ENV_PATH}"
-
-if [ ! -d "${CONDA_ENV_PATH}" ]; then
-    log_error "Conda environment not found at ${CONDA_ENV_PATH}"
-    log_error "Installation may have failed or been incomplete."
-    log_info "Run installation manually: bash /opt/partfield/install.sh"
-    log_debug "Listing ${WORKSPACE}/miniconda3/envs/:"
-    ls -la "${WORKSPACE}/miniconda3/envs/" 2>&1 || echo "Directory does not exist"
-    sleep infinity
-fi
-
-log_debug "Activating environment at ${CONDA_ENV_PATH}..."
-conda activate "${CONDA_ENV_PATH}" || {
-    log_error "Failed to activate conda environment"
-    log_debug "Trying alternative activation method..."
-    # Try alternative method
-    export PATH="${CONDA_ENV_PATH}/bin:${PATH}"
-    if ! which python3 | grep -q "${CONDA_ENV}"; then
-        log_error "Alternative activation also failed"
-        log_info "Run installation: bash /opt/partfield/install.sh"
-        sleep infinity
-    fi
-    log_warning "Used alternative activation method (PATH export)"
-}
-
-log_success "Conda environment activated: ${CONDA_ENV}"
-
-# Verify Python path
-PYTHON_PATH=$(which python3)
-log_info "Python: ${PYTHON_PATH}"
-log_debug "Python version: $(python3 --version 2>&1)"
-log_debug "Python executable: $(python3 -c 'import sys; print(sys.executable)' 2>&1)"
-
-# Verify it's from the conda env
-if ! echo "${PYTHON_PATH}" | grep -q "${CONDA_ENV}"; then
-    log_warning "Python may not be from conda environment!"
-    log_debug "Expected path to contain: ${CONDA_ENV}"
-    log_debug "Actual path: ${PYTHON_PATH}"
-fi
 
 # ============================================================================
 # GPU Verification

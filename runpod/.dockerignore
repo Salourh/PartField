@@ -137,7 +137,7 @@ htmlcov/
 # ============================================================================
 # Package Management
 # ============================================================================
-# Conda environments (will be created in /workspace/ during installation)
+# Conda/virtual environments (not used, exclude anyway)
 miniconda3/
 anaconda3/
 conda/
