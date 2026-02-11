@@ -48,8 +48,10 @@ RUN conda config --set always_yes true
 RUN mkdir -p /opt/partfield
 COPY runpod/install.sh /opt/partfield/install.sh
 COPY runpod/start.sh /opt/partfield/start.sh
+COPY runpod/diagnose.sh /opt/partfield/diagnose.sh
 RUN chmod +x /opt/partfield/install.sh && \
-    chmod +x /opt/partfield/start.sh
+    chmod +x /opt/partfield/start.sh && \
+    chmod +x /opt/partfield/diagnose.sh
 
 # Expose Gradio port
 EXPOSE 7860

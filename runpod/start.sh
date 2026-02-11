@@ -43,6 +43,10 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+log_debug() {
+    echo -e "${NC}[DEBUG]${NC} $1"
+}
+
 log_step() {
     echo -e "${GREEN}▶${NC} $1"
 }
@@ -97,15 +101,19 @@ log_step "Reinstalling system libraries (RunPod doesn't persist /usr/lib)..."
 apt-get update > /dev/null 2>&1 || log_warning "apt-get update failed (non-critical)"
 
 # Reinstall OpenGL and X11 libraries
-apt-get install -y --no-install-recommends \
+APT_OUTPUT=$(apt-get install -y --no-install-recommends \
     libx11-6 \
     libgl1 \
     libxrender1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxcb1 \
-    > /dev/null 2>&1 || log_warning "Some system libraries failed to install (may already exist)"
+    libxcb1 2>&1)
+
+if [ $? -ne 0 ]; then
+    log_warning "Some system libraries failed to install (may already exist)"
+    log_debug "apt-get output: ${APT_OUTPUT}"
+fi
 
 log_success "System libraries reinstalled"
 
@@ -115,16 +123,60 @@ log_success "System libraries reinstalled"
 
 log_step "Activating conda environment..."
 
-# Source conda
-source /opt/conda/etc/profile.d/conda.sh || { log_error "Failed to source conda"; sleep infinity; }
+# Verify conda exists
+if [ ! -f "/opt/conda/etc/profile.d/conda.sh" ]; then
+    log_error "Conda not found at /opt/conda. Docker image may be corrupted."
+    sleep infinity
+fi
 
-# Activate environment from /workspace/
-conda activate ${WORKSPACE}/miniconda3/envs/${CONDA_ENV} || { log_error "Failed to activate conda env. Run: bash /opt/partfield/install.sh"; sleep infinity; }
+log_debug "Sourcing conda from /opt/conda..."
+source /opt/conda/etc/profile.d/conda.sh || {
+    log_error "Failed to source conda"
+    log_debug "Check if /opt/conda/etc/profile.d/conda.sh exists and is readable"
+    sleep infinity
+}
+
+# Verify environment exists
+CONDA_ENV_PATH="${WORKSPACE}/miniconda3/envs/${CONDA_ENV}"
+log_debug "Expected conda env path: ${CONDA_ENV_PATH}"
+
+if [ ! -d "${CONDA_ENV_PATH}" ]; then
+    log_error "Conda environment not found at ${CONDA_ENV_PATH}"
+    log_error "Installation may have failed or been incomplete."
+    log_info "Run installation manually: bash /opt/partfield/install.sh"
+    log_debug "Listing ${WORKSPACE}/miniconda3/envs/:"
+    ls -la "${WORKSPACE}/miniconda3/envs/" 2>&1 || echo "Directory does not exist"
+    sleep infinity
+fi
+
+log_debug "Activating environment at ${CONDA_ENV_PATH}..."
+conda activate "${CONDA_ENV_PATH}" || {
+    log_error "Failed to activate conda environment"
+    log_debug "Trying alternative activation method..."
+    # Try alternative method
+    export PATH="${CONDA_ENV_PATH}/bin:${PATH}"
+    if ! which python3 | grep -q "${CONDA_ENV}"; then
+        log_error "Alternative activation also failed"
+        log_info "Run installation: bash /opt/partfield/install.sh"
+        sleep infinity
+    fi
+    log_warning "Used alternative activation method (PATH export)"
+}
 
 log_success "Conda environment activated: ${CONDA_ENV}"
 
 # Verify Python path
-log_info "Python: $(which python3)"
+PYTHON_PATH=$(which python3)
+log_info "Python: ${PYTHON_PATH}"
+log_debug "Python version: $(python3 --version 2>&1)"
+log_debug "Python executable: $(python3 -c 'import sys; print(sys.executable)' 2>&1)"
+
+# Verify it's from the conda env
+if ! echo "${PYTHON_PATH}" | grep -q "${CONDA_ENV}"; then
+    log_warning "Python may not be from conda environment!"
+    log_debug "Expected path to contain: ${CONDA_ENV}"
+    log_debug "Actual path: ${PYTHON_PATH}"
+fi
 
 # ============================================================================
 # GPU Verification
@@ -180,11 +232,82 @@ echo ""
 log_info "Starting Gradio on port 7860..."
 log_info "This may take a few seconds to initialize..."
 
+# Verify repository directory
+log_debug "Checking repository directory: ${REPO_DIR}"
+if [ ! -d "${REPO_DIR}" ]; then
+    log_error "Repository directory not found: ${REPO_DIR}"
+    log_info "Installation may have failed. Run: bash /opt/partfield/install.sh"
+    sleep infinity
+fi
+
 # Change to repository directory
-cd "${REPO_DIR}"
+cd "${REPO_DIR}" || {
+    log_error "Cannot access repository directory: ${REPO_DIR}"
+    sleep infinity
+}
+log_debug "Working directory: $(pwd)"
+
+# Verify gradio_app.py exists
+if [ ! -f "gradio_app.py" ]; then
+    log_error "gradio_app.py not found in ${REPO_DIR}"
+    log_debug "Directory contents:"
+    ls -la
+    sleep infinity
+fi
+
+# Verify model checkpoint exists
+MODEL_PATH="model/model_objaverse.ckpt"
+log_debug "Checking model checkpoint: ${MODEL_PATH}"
+if [ ! -f "${MODEL_PATH}" ]; then
+    log_error "Model checkpoint not found: ${MODEL_PATH}"
+    log_info "Model download may have failed during installation."
+    log_info "Try re-running installation: bash /opt/partfield/install.sh"
+    sleep infinity
+fi
+MODEL_SIZE=$(du -h "${MODEL_PATH}" | cut -f1)
+log_debug "Model checkpoint found (${MODEL_SIZE})"
+
+# Verify config file exists
+CONFIG_PATH="configs/final/demo.yaml"
+log_debug "Checking config file: ${CONFIG_PATH}"
+if [ ! -f "${CONFIG_PATH}" ]; then
+    log_error "Config file not found: ${CONFIG_PATH}"
+    sleep infinity
+fi
+
+# Quick import test
+log_debug "Testing critical imports..."
+python3 << 'PYTHON_TEST'
+import sys
+try:
+    import torch
+    import gradio
+    import lightning
+    print("[SUCCESS] Critical imports OK")
+    if torch.cuda.is_available():
+        print(f"[INFO] GPU: {torch.cuda.get_device_name(0)}")
+    else:
+        print("[WARNING] No GPU detected")
+except ImportError as e:
+    print(f"[ERROR] Import failed: {e}")
+    sys.exit(1)
+PYTHON_TEST
+
+if [ $? -ne 0 ]; then
+    log_error "Import test failed. Environment may be corrupted."
+    log_info "Try re-running installation: bash /opt/partfield/install.sh"
+    sleep infinity
+fi
+
+log_success "Pre-flight checks passed"
+echo ""
 
 # Launch Gradio (without exec so the shell survives if it crashes)
 # --jobs-dir specifies where to store temporary job files
+log_info "Launching Gradio application..."
+log_debug "Command: python3 gradio_app.py --port 7860 --jobs-dir ${JOBS_DIR}"
+echo ""
+
 python3 gradio_app.py \
     --port 7860 \
     --jobs-dir "${JOBS_DIR}"
@@ -197,5 +320,6 @@ log_error "Gradio exited with code ${EXIT_CODE}"
 log_warning "Container will stay alive for debugging."
 log_info "Connect via Web Terminal and check the error above."
 log_info "To restart manually: bash /opt/partfield/start.sh"
+log_debug "Check logs above for the specific error that caused Gradio to exit"
 echo ""
 sleep infinity

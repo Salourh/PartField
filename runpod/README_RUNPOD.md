@@ -97,7 +97,7 @@ If you need to reinstall:
 
 ```bash
 # Delete marker file
-rm /workspace/.partfield_v2_installed
+rm /workspace/.partfield_v3_installed
 
 # Delete conda environment (optional)
 rm -rf /workspace/miniconda3/envs/partfield
@@ -110,7 +110,7 @@ bash /opt/partfield/install.sh
 
 ```bash
 # Check if installed
-cat /workspace/.partfield_v2_installed
+cat /workspace/.partfield_v3_installed
 
 # Verify conda environment
 source /opt/conda/etc/profile.d/conda.sh
@@ -201,7 +201,7 @@ n_clusters: 4
 
 1. **Retry installation** (network issues are common):
    ```bash
-   rm /workspace/.partfield_v2_installed
+   rm /workspace/.partfield_v3_installed
    bash /opt/partfield/install.sh
    ```
 
@@ -237,7 +237,7 @@ n_clusters: 4
 
 1. **Check if installation completed**:
    ```bash
-   cat /workspace/.partfield_v2_installed
+   cat /workspace/.partfield_v3_installed
    ```
 
 2. **Check for errors in startup**:
@@ -279,7 +279,7 @@ n_clusters: 4
 3. **Reinstall environment** (last resort):
    ```bash
    rm -rf /workspace/miniconda3/envs/partfield
-   rm /workspace/.partfield_v2_installed
+   rm /workspace/.partfield_v3_installed
    bash /opt/partfield/install.sh
    ```
 
@@ -304,7 +304,7 @@ After installation, `/workspace/` contains:
 
 ```
 /workspace/
-├── .partfield_v2_installed          # Installation marker (version + timestamp)
+├── .partfield_v3_installed          # Installation marker (version + timestamp)
 ├── (scripts are in /opt/partfield/ inside the Docker image)
 │   # /opt/partfield/install.sh       # One-time installation
 │   # /opt/partfield/start.sh         # Quick restart script
@@ -337,7 +337,7 @@ After installation, `/workspace/` contains:
 
 ### Important Files
 
-- **Installation marker**: `/workspace/.partfield_v2_installed`
+- **Installation marker**: `/workspace/.partfield_v3_installed`
 - **Model checkpoint**: `/workspace/partfield/model/model_objaverse.ckpt`
 - **Conda environment**: `/workspace/miniconda3/envs/partfield/`
 - **Gradio app**: `/workspace/partfield/gradio_app.py`
